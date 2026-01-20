@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F5F7FB">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="#FFFFFF">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Student Details"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:textColor="#101828"/>
+
+                <TextView
+                    android:id="@+id/tvName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Name: -"
+                    android:textSize="15sp"
+                    android:textColor="#344054"
+                    android:layout_marginTop="12dp"/>
+
+                <TextView
+                    android:id="@+id/tvId"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Student ID: -"
+                    android:textSize="15sp"
+                    android:textColor="#344054"
+                    android:layout_marginTop="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvRoll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Roll No: -"
+                    android:textSize="15sp"
+                    android:textColor="#344054"
+                    android:layout_marginTop="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvDegree"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Degree: -"
+                    android:textSize="15sp"
+                    android:textColor="#344054"
+                    android:layout_marginTop="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvBranch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Branch: -"
+                    android:textSize="15sp"
+                    android:textColor="#344054"
+                    android:layout_marginTop="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvSemester"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Semester: -"
+                    android:textSize="15sp"
+                    android:textColor="#344054"
+                    android:layout_marginTop="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Registration Status: -"
+                    android:textSize="15sp"
+                    android:textColor="#344054"
+                    android:layout_marginTop="8dp"/>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="16dp"
+            android:text="Log Out"
+            android:textAllCaps="false"
+            android:textStyle="bold"
+            app:cornerRadius="16dp"
+            android:backgroundTint="#A62026"
+            android:textColor="#FFFFFF"/>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

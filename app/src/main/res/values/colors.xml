@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+
+    <!-- Base -->
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Login button -->
+    <color name="orange">#F5A300</color>
+
+    <!-- Background gradient -->
+    <color name="gradient_start">#FFF4D6</color>
+    <color name="gradient_end">#FFFFFF</color>
+
+    <!-- Text -->
+    <color name="text_primary">#1D1D1D</color>
+    <color name="text_secondary">#888888</color>
+
+    <!-- Input border -->
+    <color name="input_border">#E0E0E0</color>
+
+    <color name="DarkGray">#545454</color>
+
+    <color name="status_ongoing">#22C55E</color>     <!-- green -->
+    <color name="status_completed">#64748B</color>   <!-- slate/gray -->
+    <color name="status_upcoming">#F5A300</color>    <!-- your primary orange -->
+
+</resources>

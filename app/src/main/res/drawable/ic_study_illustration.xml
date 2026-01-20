@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- soft background circle -->
+    <path
+        android:fillColor="@color/orange"
+        android:fillAlpha="0.18"
+        android:pathData="M48,4A44,44 0,1 0,92 48A44,44 0,1 0,48 4Z"/>
+
+    <!-- open book (left page) -->
+    <path
+        android:fillColor="@color/text_secondary"
+        android:fillAlpha="0.55"
+        android:pathData="M22,30 C22,26 25,23 29,23 H44 V67 H29 C25,67 22,64 22,60 Z"/>
+
+    <!-- open book (right page) -->
+    <path
+        android:fillColor="@color/text_secondary"
+        android:fillAlpha="0.40"
+        android:pathData="M52,23 H67 C71,23 74,26 74,30 V60 C74,64 71,67 67,67 H52 Z"/>
+
+    <!-- center spine -->
+    <path
+        android:fillColor="@color/input_border"
+        android:pathData="M48,23 H50 V67 H48 Z"/>
+
+    <!-- pencil -->
+    <path
+        android:fillColor="@color/orange"
+        android:pathData="M34,60 L60,34 L66,40 L40,66 Z"/>
+
+    <!-- pencil tip -->
+    <path
+        android:fillColor="@color/text_primary"
+        android:fillAlpha="0.7"
+        android:pathData="M60,34 L64,30 L70,36 L66,40 Z"/>
+</vector>
