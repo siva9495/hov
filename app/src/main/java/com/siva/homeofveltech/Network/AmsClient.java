@@ -2,6 +2,7 @@ package com.siva.homeofveltech.Network;
 
 import com.siva.homeofveltech.Model.StudentDashboardData;
 import com.siva.homeofveltech.Model.StudentProfile;
+import com.siva.homeofveltech.Model.SubjectAttendanceItem;
 import com.siva.homeofveltech.Model.TimetableItem;
 
 import org.jsoup.Jsoup;
@@ -30,6 +31,7 @@ public class AmsClient {
 
     private static final String BASE = "https://ams.veltech.edu.in/";
     private static final String LOGIN_URL = BASE + "index.aspx";
+    private static final String ATTENDANCE_URL = BASE + "Attendance.aspx";
 
     private final OkHttpClient client;
 
@@ -90,7 +92,7 @@ public class AmsClient {
     /** Checks if session is still valid */
     public boolean isSessionValid() {
         try {
-            String html = get(BASE + "Attendance.aspx");
+            String html = get(ATTENDANCE_URL);
             return !(html.contains("STUDENT LOGIN") || html.contains("txtUserName"));
         } catch (Exception e) {
             return false;
@@ -100,13 +102,42 @@ public class AmsClient {
     // -------------------- PROFILE --------------------
 
     public StudentProfile fetchStudentProfile() throws IOException {
-        String html = get(BASE + "Attendance.aspx");
+        String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
 
         String studentName = textOrEmpty(doc.selectFirst("#MainContent_lblName"));
         String branch = textOrEmpty(doc.selectFirst("#MainContent_lblBranch"));
 
         return new StudentProfile(studentName, branch);
+    }
+
+    // -------------------- ATTENDANCE --------------------
+
+    public List<SubjectAttendanceItem> fetchAttendanceData() throws IOException {
+        String html = get(ATTENDANCE_URL);
+        Document doc = Jsoup.parse(html);
+        List<SubjectAttendanceItem> attendanceList = new ArrayList<>();
+        Elements rows = doc.select("#MainContent_GridView4 tr");
+
+        for (int i = 1; i < rows.size(); i++) { // Skip header row
+            Element row = rows.get(i);
+            Elements cols = row.select("td");
+
+            if (cols.size() >= 13) {
+                String subjectName = cols.get(2).text();
+                String subjectCode = cols.get(1).text();
+                String facultyName = cols.get(12).text();
+                int totalSessions = safeInt(cols.get(4).text());
+                int conductedSessions = safeInt(cols.get(5).text());
+                int attendedSessions = safeInt(cols.get(6).text());
+                int absent = safeInt(cols.get(7).text());
+                int presentPercentage = safeInt(cols.get(8).text());
+                int overallPercentage = safeInt(cols.get(9).text());
+
+                attendanceList.add(new SubjectAttendanceItem(subjectName, subjectCode, facultyName, totalSessions, attendedSessions, conductedSessions, absent, presentPercentage, overallPercentage));
+            }
+        }
+        return attendanceList;
     }
 
     private static String key(String s) {
@@ -117,7 +148,7 @@ public class AmsClient {
     // -------------------- DASHBOARD DATA --------------------
     public StudentDashboardData fetchStudentDashboardData() throws Exception {
 
-        String html = get(BASE + "Attendance.aspx");
+        String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
 
         String studentName = textOrEmpty(doc.selectFirst("#MainContent_lblName"));

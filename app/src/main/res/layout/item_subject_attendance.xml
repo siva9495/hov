@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="10dp"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@android:color/white"
+    app:strokeColor="#E5E7EB"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="14dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- Subject Name -->
+        <TextView
+            android:id="@+id/tvSubjectName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Data Structures and Algorithms"
+            android:textColor="#111827"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="@font/sf_pro"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/progressContainer"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Subject Code -->
+        <TextView
+            android:id="@+id/tvSubjectCode"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Subject Code: CS301"
+            android:textColor="#6B7280"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintStart_toStartOf="@id/tvSubjectName"
+            app:layout_constraintEnd_toStartOf="@id/progressContainer"
+            app:layout_constraintTop_toBottomOf="@id/tvSubjectName" />
+
+        <!-- Faculty Name -->
+        <TextView
+            android:id="@+id/tvFacultyName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="Faculty Name: Dr. Suresh Kumar"
+            android:textColor="#6B7280"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintStart_toStartOf="@id/tvSubjectName"
+            app:layout_constraintEnd_toStartOf="@id/progressContainer"
+            app:layout_constraintTop_toBottomOf="@id/tvSubjectCode" />
+
+        <!-- Left: session stats -->
+        <LinearLayout
+            android:id="@+id/llStats"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:weightSum="3"
+            app:layout_constraintStart_toStartOf="@id/tvSubjectName"
+            app:layout_constraintEnd_toStartOf="@id/progressContainer"
+            app:layout_constraintTop_toBottomOf="@id/tvFacultyName">
+
+            <!-- Total -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:background="@drawable/bg_attendance_chip"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Total"
+                    android:textSize="10sp"
+                    android:textColor="#6B7280" />
+
+                <TextView
+                    android:id="@+id/tvTotalValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="40"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#111827"
+                    android:fontFamily="@font/sf_pro" />
+            </LinearLayout>
+
+            <!-- Attended -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:orientation="vertical"
+                android:background="@drawable/bg_attendance_chip"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Attended"
+                    android:textSize="10sp"
+                    android:textColor="#6B7280" />
+
+                <TextView
+                    android:id="@+id/tvAttendedValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="32"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#111827"
+                    android:fontFamily="@font/sf_pro" />
+            </LinearLayout>
+
+            <!-- Conducted -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:orientation="vertical"
+                android:background="@drawable/bg_attendance_chip"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Conducted"
+                    android:textSize="10sp"
+                    android:textColor="#6B7280" />
+
+                <TextView
+                    android:id="@+id/tvConductedValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="40"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#111827"
+                    android:fontFamily="@font/sf_pro" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Engaging line -->
+        <TextView
+            android:id="@+id/tvBunkInfo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="You can bunk 2 classes and stay ≥ 75%."
+            android:textColor="#374151"
+            android:textSize="12sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            app:layout_constraintStart_toStartOf="@id/tvSubjectName"
+            app:layout_constraintEnd_toStartOf="@id/progressContainer"
+            app:layout_constraintTop_toBottomOf="@id/llStats" />
+
+        <TextView
+            android:id="@+id/tvEligibleStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Eligibility: Not Eligible"
+            android:textColor="#6B7280"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/progressContainer"
+            app:layout_constraintStart_toStartOf="@id/tvSubjectName"
+            app:layout_constraintTop_toBottomOf="@id/tvBunkInfo" />
+
+        <!-- Right: circular percentage -->
+        <FrameLayout
+            android:id="@+id/progressContainer"
+            android:layout_width="84dp"
+            android:layout_height="84dp"
+            android:layout_marginEnd="6dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/cpiAttendance"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="80"
+                app:indicatorSize="74dp"
+                app:indicatorInset="5dp"
+                app:trackThickness="7dp"
+                app:trackColor="#E5E7EB"
+                app:indicatorColor="@color/att_orange" />
+
+            <TextView
+                android:id="@+id/tvPercent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="80%"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="#111827"
+                android:fontFamily="@font/sf_pro" />
+        </FrameLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

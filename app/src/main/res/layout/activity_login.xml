@@ -15,7 +15,7 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="60dp"
-        android:src="@drawable/castletripfulllogo"
+        android:src="@drawable/homeofveltechfulllogo"
         android:contentDescription="App Logo" />
 
     <androidx.cardview.widget.CardView

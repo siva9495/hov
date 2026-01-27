@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="10dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@android:color/white"
+    app:strokeWidth="1dp"
+    app:strokeColor="#E5E7EB">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="14dp">
+
+        <TextView
+            android:id="@+id/tvCourseName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Data Structures and Algorithms"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:textColor="#111827"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="@font/sf_pro"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tvPA"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <TextView
+            android:id="@+id/tvDateTime"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="12-12-2025 • 10:00 - 11:00AM"
+            android:textSize="12sp"
+            android:textColor="#6B7280"
+            app:layout_constraintStart_toStartOf="@id/tvCourseName"
+            app:layout_constraintEnd_toStartOf="@id/tvPA"
+            app:layout_constraintTop_toBottomOf="@id/tvCourseName"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <!-- Right: P / A -->
+        <TextView
+            android:id="@+id/tvPA"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:gravity="center"
+            android:text="P"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="#111827"
+            android:includeFontPadding="false"
+            android:background="@drawable/bg_pa_present"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

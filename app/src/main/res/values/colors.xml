@@ -21,8 +21,16 @@
 
     <color name="DarkGray">#545454</color>
 
+    <color name="splash_background">#FFFBF0</color>
+
     <color name="status_ongoing">#22C55E</color>     <!-- green -->
     <color name="status_completed">#64748B</color>   <!-- slate/gray -->
     <color name="status_upcoming">#F5A300</color>    <!-- your primary orange -->
+
+    <color name="shimmer_color">#E0E0E0</color>
+
+    <color name="att_red">#EF4444</color>
+    <color name="att_orange">#F59E0B</color>
+    <color name="att_green">#22C55E</color>
 
 </resources>
