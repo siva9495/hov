@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.facebook.shimmer.ShimmerFrameLayout;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
+import com.siva.homeofveltech.UI.Settings.SettingsActivity;
 import com.siva.homeofveltech.UI.StudentDashboardActivity;
 
 /**
@@ -29,6 +31,7 @@ public class DashboardActivity extends AppCompatActivity {
     private View cardAttendance;
     private View contentContainer;
     private ShimmerFrameLayout shimmerLayout;
+    private ImageView btnSettings;
 
     // Data and Preferences
     private PrefsManager prefs;
@@ -55,6 +58,7 @@ public class DashboardActivity extends AppCompatActivity {
         cardAttendance = findViewById(R.id.cardAcademic);
         contentContainer = findViewById(R.id.contentContainer);
         shimmerLayout = findViewById(R.id.shimmerLayout);
+        btnSettings = findViewById(R.id.btnSettings);
 
         // Start with the shimmer animation
         setLoading(true);
@@ -72,6 +76,12 @@ public class DashboardActivity extends AppCompatActivity {
         if (cardAttendance != null) {
             cardAttendance.setOnClickListener(v -> {
                 startActivity(new Intent(this, StudentDashboardActivity.class));
+            });
+        }
+
+        if (btnSettings != null) {
+            btnSettings.setOnClickListener(v -> {
+                startActivity(new Intent(this, SettingsActivity.class));
             });
         }
 

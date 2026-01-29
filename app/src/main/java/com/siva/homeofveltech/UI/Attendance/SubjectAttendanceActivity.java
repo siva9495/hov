@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,6 +31,7 @@ public class SubjectAttendanceActivity extends AppCompatActivity {
     private ShimmerFrameLayout shimmerViewContainer;
     private TextView tvEmpty;
     private SubjectAttendanceAdapter adapter;
+    private ImageView btnBack;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,12 +43,15 @@ public class SubjectAttendanceActivity extends AppCompatActivity {
 
         shimmerViewContainer = findViewById(R.id.shimmer_view_container);
         tvEmpty = findViewById(R.id.tvEmpty);
+        btnBack = findViewById(R.id.btnBack);
 
         shimmerViewContainer.startShimmer();
 
         amsClient = new AmsClient();
 
         fetchAndDisplayAttendance();
+
+        btnBack.setOnClickListener(v -> onBackPressed());
     }
 
     private void fetchAndDisplayAttendance() {

@@ -7,6 +7,7 @@
 
     <!-- Login button -->
     <color name="orange">#F5A300</color>
+    <color name="status_bar_orange">#F5A300</color>
 
     <!-- Background gradient -->
     <color name="gradient_start">#FFF4D6</color>

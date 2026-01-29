@@ -11,20 +11,39 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Simple header -->
-        <TextView
-            android:id="@+id/tvTitle"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:paddingTop="18dp"
             android:paddingBottom="12dp"
-            android:text="Subject Attendance"
-            android:textStyle="bold"
-            android:textSize="22sp"
-            android:textColor="#1F2937"
-            android:fontFamily="@font/sf_pro"/>
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:layout_marginTop="32dp">
+
+            <ImageView
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_icon_circle"
+                android:padding="10dp"
+                android:src="@drawable/ic_back"
+                android:contentDescription="Back"
+                android:clickable="true"
+                android:focusable="true"/>
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="Subject Attendance"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:fontFamily="@font/sf_pro"/>
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvSubjectAttendance"

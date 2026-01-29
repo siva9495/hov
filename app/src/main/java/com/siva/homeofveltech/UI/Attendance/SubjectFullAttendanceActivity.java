@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,6 +28,7 @@ public class SubjectFullAttendanceActivity extends AppCompatActivity {
     private RecyclerView rv;
     private ShimmerFrameLayout shimmerViewContainer;
     private TextView tvEmpty;
+    private ImageView btnBack;
 
     private String subjectCode;
     private String subjectName;
@@ -52,6 +54,7 @@ public class SubjectFullAttendanceActivity extends AppCompatActivity {
 
         shimmerViewContainer = findViewById(R.id.shimmer_view_container);
         tvEmpty = findViewById(R.id.tvEmpty);
+        btnBack = findViewById(R.id.btnBack);
 
         shimmerViewContainer.startShimmer();
 
@@ -60,6 +63,8 @@ public class SubjectFullAttendanceActivity extends AppCompatActivity {
 
         // Fetch real data
         fetchSubjectAttendance();
+
+        btnBack.setOnClickListener(v -> onBackPressed());
     }
 
     private void fetchSubjectAttendance() {
