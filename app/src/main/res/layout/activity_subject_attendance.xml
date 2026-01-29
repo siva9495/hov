@@ -1,35 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@drawable/bg_screen_gradient">
 
-    <!-- Simple header (keep your existing style / toolbar if you have) -->
-    <TextView
-        android:id="@+id/tvTitle"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Simple header -->
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="18dp"
+            android:paddingBottom="12dp"
+            android:text="Subject Attendance"
+            android:textStyle="bold"
+            android:textSize="22sp"
+            android:textColor="#1F2937"
+            android:fontFamily="@font/sf_pro"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSubjectAttendance"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="16dp"
+            android:clipToPadding="false"
+            android:overScrollMode="never"/>
+
+    </LinearLayout>
+
+    <com.facebook.shimmer.ShimmerFrameLayout
+        android:id="@+id/shimmer_view_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="18dp"
-        android:paddingBottom="12dp"
-        android:text="Subject Attendance"
-        android:textStyle="bold"
-        android:textSize="22sp"
-        android:textColor="#1F2937"
-        android:fontFamily="@font/sf_pro"/>
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        app:shimmer_duration="800">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvSubjectAttendance"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="16dp"
-        android:clipToPadding="false"
-        android:overScrollMode="never"/>
-</LinearLayout>
+        <!-- Adding 7 rows of placeholders -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <include layout="@layout/item_subject_attendance_placeholder" />
+            <include layout="@layout/item_subject_attendance_placeholder" />
+            <include layout="@layout/item_subject_attendance_placeholder" />
+            <include layout="@layout/item_subject_attendance_placeholder" />
+            <include layout="@layout/item_subject_attendance_placeholder" />
+            <include layout="@layout/item_subject_attendance_placeholder" />
+            <include layout="@layout/item_subject_attendance_placeholder" />
+        </LinearLayout>
+    </com.facebook.shimmer.ShimmerFrameLayout>
+
+    <!-- Empty State -->
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:text="No attendance data available"
+        android:textSize="16sp"
+        android:textColor="#6B7280"
+        android:fontFamily="@font/sf_pro"
+        android:padding="20dp"/>
+
+</FrameLayout>

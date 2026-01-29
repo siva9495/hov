@@ -1,5 +1,6 @@
 package com.siva.homeofveltech.Network;
 
+import com.siva.homeofveltech.Model.PeriodAttendanceItem;
 import com.siva.homeofveltech.Model.StudentDashboardData;
 import com.siva.homeofveltech.Model.StudentProfile;
 import com.siva.homeofveltech.Model.SubjectAttendanceItem;
@@ -34,6 +35,9 @@ public class AmsClient {
     private static final String ATTENDANCE_URL = BASE + "Attendance.aspx";
 
     private final OkHttpClient client;
+    private String username;
+    private String password;
+
 
     public AmsClient() {
         this.client = OkHttpProvider.getClient();
@@ -62,6 +66,8 @@ public class AmsClient {
 
     /** Returns true if login success, false if invalid credentials */
     public boolean login(String username, String password) throws IOException {
+        this.username = username;
+        this.password = password;
         Map<String, String> hidden = fetchHiddenFields();
 
         FormBody.Builder fb = new FormBody.Builder();
@@ -99,9 +105,20 @@ public class AmsClient {
         }
     }
 
+    private void renewSession() throws IOException {
+        if (username == null || password == null) {
+            throw new IOException("Credentials not available for session renewal.");
+        }
+        login(username, password);
+    }
+
+
     // -------------------- PROFILE --------------------
 
     public StudentProfile fetchStudentProfile() throws IOException {
+        if (!isSessionValid()) {
+            renewSession();
+        }
         String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
 
@@ -111,11 +128,15 @@ public class AmsClient {
         return new StudentProfile(studentName, branch);
     }
 
-    // -------------------- ATTENDANCE --------------------
+    // -------------------- ATTENDANCE (SUMMARY GRID) --------------------
 
     public List<SubjectAttendanceItem> fetchAttendanceData() throws IOException {
+        if (!isSessionValid()) {
+            renewSession();
+        }
         String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
+
         List<SubjectAttendanceItem> attendanceList = new ArrayList<>();
         Elements rows = doc.select("#MainContent_GridView4 tr");
 
@@ -134,27 +155,177 @@ public class AmsClient {
                 int presentPercentage = safeInt(cols.get(8).text());
                 int overallPercentage = safeInt(cols.get(9).text());
 
-                attendanceList.add(new SubjectAttendanceItem(subjectName, subjectCode, facultyName, totalSessions, attendedSessions, conductedSessions, absent, presentPercentage, overallPercentage));
+                attendanceList.add(new SubjectAttendanceItem(
+                        subjectName,
+                        subjectCode,
+                        facultyName,
+                        totalSessions,
+                        attendedSessions,
+                        conductedSessions,
+                        absent,
+                        presentPercentage,
+                        overallPercentage
+                ));
             }
         }
+
         return attendanceList;
     }
 
-    private static String key(String s) {
-        if (s == null) return "";
-        return s.toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
+    // -------------------- SUBJECT FULL ATTENDANCE (FIXED) --------------------
+
+    /**
+     * Fetches detailed period-wise attendance for a specific subject.
+     * Fixes 500 error by:
+     * 1) Sending valid Month dropdown value only if options exist
+     * 2) Parsing ASP.NET AJAX Delta response by extracting UpdatePanel HTML
+     */
+    public List<PeriodAttendanceItem> fetchSubjectFullAttendance(String subjectCode, String subjectName) throws IOException {
+        if (!isSessionValid()) {
+            renewSession();
+        }
+        // 1) GET Attendance.aspx
+        String html = get(ATTENDANCE_URL);
+        Document doc = Jsoup.parse(html);
+
+        // 2) Find exact course value from dropdown (must match server option)
+        Element courseDropdown = doc.selectFirst("#MainContent_Courselist");
+        String exactCourseValue = null;
+
+        if (courseDropdown != null) {
+            for (Element option : courseDropdown.select("option")) {
+                String value = option.attr("value");
+                if (value != null && value.startsWith(subjectCode + "-")) {
+                    exactCourseValue = value;
+                    break;
+                }
+            }
+        }
+
+        if (exactCourseValue == null) return new ArrayList<>();
+
+        // 3) Year (pick first real one)
+        String selectedYear = null;
+        Element yearDropdown = doc.selectFirst("#MainContent_DropDownList2");
+        if (yearDropdown != null) {
+            for (Element option : yearDropdown.select("option")) {
+                String val = option.attr("value");
+                if (val != null && !val.equals("Select Year") && !val.equals("0") && !val.trim().isEmpty()) {
+                    selectedYear = val;
+                    break;
+                }
+            }
+        }
+        if (selectedYear == null) selectedYear = "2025"; // fallback
+
+        // 4) Month (ONLY send if it has options!)
+        String monthVal = getFirstOrSelectedOptionValue(doc, "MainContent_DropDownList1");
+        // monthVal may be null (no options) -> DO NOT SEND
+
+        // 5) Build AJAX POST correctly
+        FormBody.Builder fb = new FormBody.Builder();
+
+        // ScriptManager must match the trigger control
+        fb.add("ctl00$MainContent$ScriptManager1",
+                "ctl00$MainContent$UpdatePanel6|ctl00$MainContent$Button1");
+
+        Element textBox1 = doc.selectFirst("#MainContent_TextBox1");
+        if (textBox1 != null) {
+            fb.add("ctl00$MainContent$TextBox1", textBox1.attr("value"));
+        }
+
+        fb.add("ctl00$MainContent$Courselist", exactCourseValue);
+        fb.add("ctl00$MainContent$DropDownList2", selectedYear);
+
+        if (monthVal != null && !monthVal.trim().isEmpty()) {
+            fb.add("ctl00$MainContent$DropDownList1", monthVal);
+        }
+
+        // radio (same as your existing usage)
+        fb.add("ctl00$MainContent$g1", "RadioButton3");
+
+        // event fields (must exist)
+        fb.add("__EVENTTARGET", "");
+        fb.add("__EVENTARGUMENT", "");
+        fb.add("__LASTFOCUS", "");
+
+        // hidden fields (skip duplicates)
+        for (Element input : doc.select("input[type=hidden][name]")) {
+            String name = input.attr("name");
+            if ("__EVENTTARGET".equals(name) || "__EVENTARGUMENT".equals(name) || "__LASTFOCUS".equals(name)) {
+                continue;
+            }
+            fb.add(name, input.attr("value") == null ? "" : input.attr("value"));
+        }
+
+        fb.add("__ASYNCPOST", "true");
+        fb.add("ctl00$MainContent$Button1", "Coursewise Attendance");
+
+        Request post = new Request.Builder()
+                .url(ATTENDANCE_URL)
+                .post(fb.build())
+                .header("Referer", ATTENDANCE_URL)
+                .header("Origin", BASE)
+                .header("User-Agent", "Mozilla/5.0")
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("X-MicrosoftAjax", "Delta=true")
+                .build();
+
+        String delta;
+        try (Response res = client.newCall(post).execute()) {
+            if (!res.isSuccessful() || res.body() == null) {
+                throw new IOException("POST failed: " + res.code());
+            }
+            delta = res.body().string();
+        }
+
+        // 6) Extract GridView1 HTML from UpdatePanel6 and parse
+        String panelHtml = extractUpdatePanelHtml(delta, "MainContent_UpdatePanel6");
+        if (panelHtml == null) return new ArrayList<>();
+
+        return parseSubjectAttendanceResponseFromPanel(panelHtml, subjectName);
+    }
+
+    private List<PeriodAttendanceItem> parseSubjectAttendanceResponseFromPanel(String panelHtml, String courseName) {
+        List<PeriodAttendanceItem> periods = new ArrayList<>();
+
+        try {
+            Document doc = Jsoup.parse(panelHtml);
+
+            Element table = doc.getElementById("MainContent_GridView1");
+            if (table == null) return periods;
+
+            Elements rows = table.select("tr");
+            for (int i = 1; i < rows.size(); i++) {
+                Elements cols = rows.get(i).select("td");
+                if (cols.size() >= 7) {
+                    String date = formatDate(cols.get(4).text().trim());
+                    String timeSlot = cols.get(5).text().trim();
+                    String status = cols.get(6).text().trim();
+                    boolean isPresent = status.equalsIgnoreCase("P");
+
+                    periods.add(new PeriodAttendanceItem(courseName, date, timeSlot, isPresent));
+                }
+            }
+        } catch (Exception ignored) {}
+
+        return periods;
     }
 
     // -------------------- DASHBOARD DATA --------------------
-    public StudentDashboardData fetchStudentDashboardData() throws Exception {
 
+    public StudentDashboardData fetchStudentDashboardData() throws Exception {
+        if (!isSessionValid()) {
+            renewSession();
+        }
         String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
 
         String studentName = textOrEmpty(doc.selectFirst("#MainContent_lblName"));
         String branch      = textOrEmpty(doc.selectFirst("#MainContent_lblBranch"));
 
-        // ✅ courseName -> courseCode (robust map)
+        // courseName -> courseCode map (robust)
         Map<String, String> nameToCode = new HashMap<>();
         Element courseTable = doc.getElementById("MainContent_GridView3");
         if (courseTable != null) {
@@ -202,16 +373,15 @@ public class AmsClient {
 
                         String time = slots.get(c - 1);
 
-                        // ✅ show course code (subject id)
+                        // show course code if available, else fallback to subject name
                         String code = nameToCode.get(key(subjectName));
                         if (code == null || code.trim().isEmpty()) {
-                            // fallback: show shortened subject name if code missing
                             code = subjectName;
                         }
 
                         String status = computeStatusIfToday(day, time);
 
-                        // NOTE: We keep subjectName in model (optional), UI will show only code+time+status
+                        // Keep subjectName in model; UI can decide what to show
                         dayItems.add(new TimetableItem(code, subjectName, time, status));
                     }
 
@@ -220,13 +390,14 @@ public class AmsClient {
             }
         }
 
-        // ✅ overall attendance (Present / Faculty Sessions)
+        // overall attendance (Present / Faculty Sessions)
         double overall = parseOverallAttendance(doc);
 
         return new StudentDashboardData(studentName, branch, overall, timetableByDay);
     }
 
-    // -------------------- Attendance % parser (FIXED) --------------------
+    // -------------------- Attendance % parser --------------------
+
     private double parseOverallAttendance(Document doc) {
         try {
             Element table = doc.getElementById("MainContent_GridView4");
@@ -268,7 +439,7 @@ public class AmsClient {
                 int absent  = (tds.size() > absentIdx) ? safeInt(tds.get(absentIdx).text()) : 0;
                 int total   = safeInt(tds.get(totalIdx).text());
 
-                // ✅ best denom: Faculty Sessions (classes conducted so far)
+                // best denom: Faculty Sessions (classes conducted so far)
                 int denom = faculty;
 
                 // fallback if faculty is missing but present+absent exists
@@ -293,7 +464,6 @@ public class AmsClient {
             return -1;
         }
     }
-
 
     // -------------------- Status logic --------------------
 
@@ -367,6 +537,55 @@ public class AmsClient {
         return hour * 60 + min;
     }
 
+    // -------------------- AJAX helpers --------------------
+
+    private static String extractUpdatePanelHtml(String delta, String panelId) {
+        String[] parts = delta.split("\\|");
+        for (int i = 0; i < parts.length - 2; i++) {
+            if ("updatePanel".equals(parts[i]) && panelId.equals(parts[i + 1])) {
+                return parts[i + 2];
+            }
+        }
+        return null;
+    }
+
+    private static Map<String, String> extractHiddenFieldsFromDelta(String delta) {
+        Map<String, String> map = new HashMap<>();
+        String[] parts = delta.split("\\|");
+        for (int i = 0; i < parts.length - 2; i++) {
+            if ("hiddenField".equals(parts[i])) {
+                map.put(parts[i + 1], parts[i + 2]);
+            }
+        }
+        return map;
+    }
+
+    private static String getFirstOrSelectedOptionValue(Document doc, String selectId) {
+        Element sel = doc.getElementById(selectId);
+        if (sel == null) return null;
+
+        Element selected = sel.selectFirst("option[selected]");
+        if (selected != null) return selected.attr("value");
+
+        Element first = sel.selectFirst("option");
+        if (first != null) return first.attr("value");
+
+        return null; // no options
+    }
+
+    // -------------------- Small utils --------------------
+
+    private String formatDate(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) return "";
+        if (dateStr.contains(" ")) return dateStr.split(" ")[0];
+        return dateStr;
+    }
+
+    private static String key(String s) {
+        if (s == null) return "";
+        return s.toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
+    }
+
     private static int safeInt(String s) {
         try {
             if (s == null) return 0;
@@ -382,7 +601,6 @@ public class AmsClient {
         if (raw == null) return "";
         String d = raw.trim();
 
-        // Handle common short forms if AMS ever returns them
         if (d.equalsIgnoreCase("Mon")) return "Monday";
         if (d.equalsIgnoreCase("Tue")) return "Tuesday";
         if (d.equalsIgnoreCase("Wed")) return "Wednesday";
