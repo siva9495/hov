@@ -16,6 +16,11 @@ public class PrefsManager {
     private static final String KEY_BRANCH = "branch";
     private static final String KEY_SHOW_GRADE = "showGrade";
 
+    // ✅ Results cache
+    private static final String KEY_RESULTS_JSON = "results_json";
+    private static final String KEY_RESULTS_UPDATED_AT = "results_updated_at";
+    private static final String KEY_RESULTS_CGPA = "results_overall_cgpa";
+
     private final SharedPreferences sp;
 
     public PrefsManager(Context ctx) {
@@ -60,6 +65,40 @@ public class PrefsManager {
 
     public boolean hasCredentials() {
         return !getUsername().isEmpty() && !getPassword().isEmpty();
+    }
+
+    // ✅ Results cache helpers
+    public void saveResultsCache(String resultsJson, double overallCgpa) {
+        sp.edit()
+                .putString(KEY_RESULTS_JSON, resultsJson == null ? "" : resultsJson)
+                .putLong(KEY_RESULTS_UPDATED_AT, System.currentTimeMillis())
+                .putFloat(KEY_RESULTS_CGPA, (float) overallCgpa)
+                .apply();
+    }
+
+    public String getResultsCacheJson() {
+        return sp.getString(KEY_RESULTS_JSON, "");
+    }
+
+    public long getResultsCacheUpdatedAt() {
+        return sp.getLong(KEY_RESULTS_UPDATED_AT, 0L);
+    }
+
+    public double getResultsCacheCgpa() {
+        return sp.getFloat(KEY_RESULTS_CGPA, 0f);
+    }
+
+    public boolean hasResultsCache() {
+        String j = getResultsCacheJson();
+        return j != null && !j.trim().isEmpty();
+    }
+
+    public void clearResultsCache() {
+        sp.edit()
+                .remove(KEY_RESULTS_JSON)
+                .remove(KEY_RESULTS_UPDATED_AT)
+                .remove(KEY_RESULTS_CGPA)
+                .apply();
     }
 
     public void clearAll() {

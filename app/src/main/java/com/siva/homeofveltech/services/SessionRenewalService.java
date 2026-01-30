@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -20,7 +21,8 @@ public class SessionRenewalService extends Service {
     private static final long RENEWAL_INTERVAL = 10 * 60 * 1000; // 10 minutes
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final Handler handler = new Handler();
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
     private PrefsManager prefsManager;
     private AmsClient amsClient;
 
@@ -42,6 +44,7 @@ public class SessionRenewalService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "Session Renewal Service started");
+        handler.removeCallbacks(renewalRunnable);
         handler.post(renewalRunnable);
         return START_STICKY;
     }
@@ -61,21 +64,20 @@ public class SessionRenewalService extends Service {
     }
 
     private void renewSession() {
-        if (prefsManager.hasCredentials()) {
-            executor.execute(() -> {
-                try {
-                    String username = prefsManager.getUsername();
-                    String password = prefsManager.getPassword();
-                    boolean loggedIn = amsClient.login(username, password);
-                    if (loggedIn) {
-                        Log.d(TAG, "Session renewed successfully");
-                    } else {
-                        Log.e(TAG, "Failed to renew session");
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error renewing session", e);
-                }
-            });
-        }
+        if (!prefsManager.hasCredentials()) return;
+
+        executor.execute(() -> {
+            try {
+                String username = prefsManager.getUsername();
+                String password = prefsManager.getPassword();
+
+                boolean loggedIn = amsClient.login(username, password);
+                if (loggedIn) Log.d(TAG, "Session renewed successfully");
+                else Log.e(TAG, "Failed to renew session");
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error renewing session", e);
+            }
+        });
     }
 }

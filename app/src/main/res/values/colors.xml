@@ -34,4 +34,15 @@
     <color name="att_orange">#F59E0B</color>
     <color name="att_green">#22C55E</color>
 
+    <color name="result_green">#2E7D32</color>
+    <color name="result_orange">#F5A300</color>
+    <color name="result_red">#D32F2F</color>
+    <color name="chip_green_bg">#EAF7EE</color>
+    <color name="chip_orange_bg">#FFF4E0</color>
+    <color name="chip_red_bg">#FDECEC</color>
+    <color name="chip_gray_bg">#F3F4F6</color>
+    <color name="chip_stroke_gray">#D1D5DB</color>
+
+
+
 </resources>

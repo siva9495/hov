@@ -6,4 +6,21 @@
     </style>
 
     <style name="Theme.Homeofveltech" parent="Base.Theme.Homeofveltech" />
+
+    <style name="ResultsDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/dialog_exit</item>
+    </style>
+
+    <style name="ResultsInfoDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+
+        <!-- ✅ Soft blur-like feel (dim behind) -->
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.35</item>
+
+
+    </style>
+
+
 </resources>

@@ -1,9 +1,11 @@
 package com.siva.homeofveltech.Network;
 
 import com.siva.homeofveltech.Model.PeriodAttendanceItem;
+import com.siva.homeofveltech.Model.SemesterResult;
 import com.siva.homeofveltech.Model.StudentDashboardData;
 import com.siva.homeofveltech.Model.StudentProfile;
 import com.siva.homeofveltech.Model.SubjectAttendanceItem;
+import com.siva.homeofveltech.Model.SubjectGrade;
 import com.siva.homeofveltech.Model.TimetableItem;
 
 import org.jsoup.Jsoup;
@@ -15,8 +17,11 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -33,11 +38,11 @@ public class AmsClient {
     private static final String BASE = "https://ams.veltech.edu.in/";
     private static final String LOGIN_URL = BASE + "index.aspx";
     private static final String ATTENDANCE_URL = BASE + "Attendance.aspx";
+    private static final String SEMESTER_MARK_URL = BASE + "SemesterMark.aspx";
 
     private final OkHttpClient client;
     private String username;
     private String password;
-
 
     public AmsClient() {
         this.client = OkHttpProvider.getClient();
@@ -91,7 +96,6 @@ public class AmsClient {
             if (!res.isSuccessful()) throw new IOException("POST login failed: " + res.code());
         }
 
-        // Best verification: check secured page after POST
         return isSessionValid();
     }
 
@@ -112,13 +116,14 @@ public class AmsClient {
         login(username, password);
     }
 
+    private void ensureSession() throws IOException {
+        if (!isSessionValid()) renewSession();
+    }
 
     // -------------------- PROFILE --------------------
 
     public StudentProfile fetchStudentProfile() throws IOException {
-        if (!isSessionValid()) {
-            renewSession();
-        }
+        ensureSession();
         String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
 
@@ -131,16 +136,14 @@ public class AmsClient {
     // -------------------- ATTENDANCE (SUMMARY GRID) --------------------
 
     public List<SubjectAttendanceItem> fetchAttendanceData() throws IOException {
-        if (!isSessionValid()) {
-            renewSession();
-        }
+        ensureSession();
         String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
 
         List<SubjectAttendanceItem> attendanceList = new ArrayList<>();
         Elements rows = doc.select("#MainContent_GridView4 tr");
 
-        for (int i = 1; i < rows.size(); i++) { // Skip header row
+        for (int i = 1; i < rows.size(); i++) {
             Element row = rows.get(i);
             Elements cols = row.select("td");
 
@@ -168,27 +171,17 @@ public class AmsClient {
                 ));
             }
         }
-
         return attendanceList;
     }
 
     // -------------------- SUBJECT FULL ATTENDANCE (FIXED) --------------------
 
-    /**
-     * Fetches detailed period-wise attendance for a specific subject.
-     * Fixes 500 error by:
-     * 1) Sending valid Month dropdown value only if options exist
-     * 2) Parsing ASP.NET AJAX Delta response by extracting UpdatePanel HTML
-     */
     public List<PeriodAttendanceItem> fetchSubjectFullAttendance(String subjectCode, String subjectName) throws IOException {
-        if (!isSessionValid()) {
-            renewSession();
-        }
-        // 1) GET Attendance.aspx
+        ensureSession();
+
         String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
 
-        // 2) Find exact course value from dropdown (must match server option)
         Element courseDropdown = doc.selectFirst("#MainContent_Courselist");
         String exactCourseValue = null;
 
@@ -204,7 +197,6 @@ public class AmsClient {
 
         if (exactCourseValue == null) return new ArrayList<>();
 
-        // 3) Year (pick first real one)
         String selectedYear = null;
         Element yearDropdown = doc.selectFirst("#MainContent_DropDownList2");
         if (yearDropdown != null) {
@@ -216,16 +208,12 @@ public class AmsClient {
                 }
             }
         }
-        if (selectedYear == null) selectedYear = "2025"; // fallback
+        if (selectedYear == null) selectedYear = "2025";
 
-        // 4) Month (ONLY send if it has options!)
         String monthVal = getFirstOrSelectedOptionValue(doc, "MainContent_DropDownList1");
-        // monthVal may be null (no options) -> DO NOT SEND
 
-        // 5) Build AJAX POST correctly
         FormBody.Builder fb = new FormBody.Builder();
 
-        // ScriptManager must match the trigger control
         fb.add("ctl00$MainContent$ScriptManager1",
                 "ctl00$MainContent$UpdatePanel6|ctl00$MainContent$Button1");
 
@@ -241,15 +229,12 @@ public class AmsClient {
             fb.add("ctl00$MainContent$DropDownList1", monthVal);
         }
 
-        // radio (same as your existing usage)
         fb.add("ctl00$MainContent$g1", "RadioButton3");
 
-        // event fields (must exist)
         fb.add("__EVENTTARGET", "");
         fb.add("__EVENTARGUMENT", "");
         fb.add("__LASTFOCUS", "");
 
-        // hidden fields (skip duplicates)
         for (Element input : doc.select("input[type=hidden][name]")) {
             String name = input.attr("name");
             if ("__EVENTTARGET".equals(name) || "__EVENTARGUMENT".equals(name) || "__LASTFOCUS".equals(name)) {
@@ -280,7 +265,6 @@ public class AmsClient {
             delta = res.body().string();
         }
 
-        // 6) Extract GridView1 HTML from UpdatePanel6 and parse
         String panelHtml = extractUpdatePanelHtml(delta, "MainContent_UpdatePanel6");
         if (panelHtml == null) return new ArrayList<>();
 
@@ -316,16 +300,14 @@ public class AmsClient {
     // -------------------- DASHBOARD DATA --------------------
 
     public StudentDashboardData fetchStudentDashboardData() throws Exception {
-        if (!isSessionValid()) {
-            renewSession();
-        }
+        ensureSession();
+
         String html = get(ATTENDANCE_URL);
         Document doc = Jsoup.parse(html);
 
         String studentName = textOrEmpty(doc.selectFirst("#MainContent_lblName"));
         String branch      = textOrEmpty(doc.selectFirst("#MainContent_lblBranch"));
 
-        // courseName -> courseCode map (robust)
         Map<String, String> nameToCode = new HashMap<>();
         Element courseTable = doc.getElementById("MainContent_GridView3");
         if (courseTable != null) {
@@ -342,7 +324,6 @@ public class AmsClient {
             }
         }
 
-        // timetable (week)
         Map<String, List<TimetableItem>> timetableByDay = new HashMap<>();
         Element tt = doc.getElementById("MainContent_GridTimetable");
         List<String> slots = new ArrayList<>();
@@ -351,13 +332,11 @@ public class AmsClient {
             Elements rows = tt.select("tr");
             if (!rows.isEmpty()) {
 
-                // header slots
                 Elements ths = rows.get(0).select("th");
                 for (int i = 1; i < ths.size(); i++) {
                     slots.add(ths.get(i).text().trim());
                 }
 
-                // day rows
                 for (int r = 1; r < rows.size(); r++) {
                     Elements tds = rows.get(r).select("td");
                     if (tds.size() < 2) continue;
@@ -373,15 +352,12 @@ public class AmsClient {
 
                         String time = slots.get(c - 1);
 
-                        // show course code if available, else fallback to subject name
                         String code = nameToCode.get(key(subjectName));
                         if (code == null || code.trim().isEmpty()) {
                             code = subjectName;
                         }
 
                         String status = computeStatusIfToday(day, time);
-
-                        // Keep subjectName in model; UI can decide what to show
                         dayItems.add(new TimetableItem(code, subjectName, time, status));
                     }
 
@@ -390,13 +366,10 @@ public class AmsClient {
             }
         }
 
-        // overall attendance (Present / Faculty Sessions)
         double overall = parseOverallAttendance(doc);
 
         return new StudentDashboardData(studentName, branch, overall, timetableByDay);
     }
-
-    // -------------------- Attendance % parser --------------------
 
     private double parseOverallAttendance(Document doc) {
         try {
@@ -421,14 +394,13 @@ public class AmsClient {
                 if (h.contains("total sessions")) totalIdx = i;
             }
 
-            // fallback to known AMS positions
             if (totalIdx == -1) totalIdx = 4;
             if (facultyIdx == -1) facultyIdx = 5;
             if (presentIdx == -1) presentIdx = 6;
             if (absentIdx == -1) absentIdx = 7;
 
             int sumPresent = 0;
-            int sumDenom = 0; // denom = faculty sessions (preferred)
+            int sumDenom = 0;
 
             for (int r = 1; r < rows.size(); r++) {
                 Elements tds = rows.get(r).select("td");
@@ -439,16 +411,11 @@ public class AmsClient {
                 int absent  = (tds.size() > absentIdx) ? safeInt(tds.get(absentIdx).text()) : 0;
                 int total   = safeInt(tds.get(totalIdx).text());
 
-                // best denom: Faculty Sessions (classes conducted so far)
                 int denom = faculty;
-
-                // fallback if faculty is missing but present+absent exists
                 if (denom <= 0) {
                     int pa = present + absent;
                     if (pa > 0) denom = pa;
                 }
-
-                // last fallback: total sessions
                 if (denom <= 0) denom = total;
 
                 if (denom > 0) {
@@ -463,6 +430,303 @@ public class AmsClient {
         } catch (Exception e) {
             return -1;
         }
+    }
+
+    // ==================== ✅ SEMESTER RESULTS (REAL) ====================
+
+    public enum ResultType {
+        REGULAR("RadioButton1", "ctl00$MainContent$RadioButton1"),
+        ARREAR("RadioButton2", "ctl00$MainContent$RadioButton2"),
+        REVALUATION("RadioButton3", "ctl00$MainContent$RadioButton3");
+
+        public final String groupValue;     // ctl00$MainContent$group1
+        public final String eventTarget;    // __EVENTTARGET
+
+        ResultType(String groupValue, String eventTarget) {
+            this.groupValue = groupValue;
+            this.eventTarget = eventTarget;
+        }
+    }
+
+    /** Returns YoPList values like "Nov.2025" */
+    public List<String> fetchAvailableResultPeriods() throws IOException {
+        ensureSession();
+        String html = get(SEMESTER_MARK_URL);
+        Document doc = Jsoup.parse(html);
+
+        Element sel = doc.selectFirst("#MainContent_YoPList");
+        if (sel == null) return new ArrayList<>();
+
+        List<String> out = new ArrayList<>();
+        for (Element opt : sel.select("option")) {
+            String v = opt.attr("value");
+            if (v == null) continue;
+            v = v.trim();
+            if (v.isEmpty() || "0".equals(v) || v.equalsIgnoreCase("Select YoR")) continue;
+            out.add(v);
+        }
+        return out;
+    }
+
+    /** Fetches results for ONE period (e.g., Nov.2025) and ONE type (Regular/Arrear/Revaluation). */
+    public List<SemesterResult> fetchSemesterResultsForPeriod(String periodValue, ResultType type) throws IOException {
+        ensureSession();
+
+        // Step-0: GET page
+        PageState s0 = getSemesterMarkState();
+
+        // Step-1: POST dropdown selection (YoPList postback)
+        PageState s1 = postSemesterMark(
+                s0,
+                "ctl00$MainContent$YoPList",
+                periodValue,
+                null
+        );
+
+        // Step-2: POST radio selection (Regular/Arrear/Revaluation)
+        PageState s2 = postSemesterMark(
+                s1,
+                type.eventTarget,
+                periodValue,
+                type.groupValue
+        );
+
+        // Parse final page for GridView1
+        return parseSemesterResultsHtml(s2.html);
+    }
+
+    /** Fetches ALL periods and merges semesters (auto month/year change) */
+    public List<SemesterResult> fetchAllSemesterResults(ResultType type) throws IOException {
+        ensureSession();
+
+        List<String> periods = fetchAvailableResultPeriods();
+        if (periods == null || periods.isEmpty()) return new ArrayList<>();
+
+        // Keep latest found per semester (if duplicates happen)
+        Map<Integer, SemesterResult> semMap = new LinkedHashMap<>();
+
+        for (String p : periods) {
+            List<SemesterResult> one = fetchSemesterResultsForPeriod(p, type);
+            for (SemesterResult sr : one) {
+                int semNo = extractSemesterNumber(sr.semesterName);
+                if (semNo <= 0) continue;
+
+                // If already exists, keep the one with more subjects (safer)
+                if (!semMap.containsKey(semNo)) {
+                    semMap.put(semNo, sr);
+                } else {
+                    SemesterResult old = semMap.get(semNo);
+                    int oldCount = (old.subjects == null) ? 0 : old.subjects.size();
+                    int newCount = (sr.subjects == null) ? 0 : sr.subjects.size();
+                    if (newCount > oldCount) semMap.put(semNo, sr);
+                }
+            }
+        }
+
+        List<SemesterResult> out = new ArrayList<>(semMap.values());
+        Collections.sort(out, Comparator.comparingInt(o -> extractSemesterNumber(o.semesterName)));
+        return out;
+    }
+
+    public List<SemesterResult> fetchAllSemesterResultsRegular() throws IOException {
+        return fetchAllSemesterResults(ResultType.REGULAR);
+    }
+
+    // ---------- Internals for SemesterMark.aspx ----------
+
+    private static class PageState {
+        final Map<String, String> hidden;
+        final String html;
+
+        PageState(Map<String, String> hidden, String html) {
+            this.hidden = hidden;
+            this.html = html;
+        }
+    }
+
+    private PageState getSemesterMarkState() throws IOException {
+        String html = get(SEMESTER_MARK_URL);
+        Document doc = Jsoup.parse(html);
+        Map<String, String> hidden = extractAspNetHidden(doc);
+        return new PageState(hidden, html);
+    }
+
+    private PageState postSemesterMark(PageState prev, String eventTarget, String periodValue, String group1Value) throws IOException {
+        FormBody.Builder fb = new FormBody.Builder();
+
+        // Must exist
+        fb.add("__EVENTTARGET", eventTarget == null ? "" : eventTarget);
+        fb.add("__EVENTARGUMENT", "");
+        fb.add("__LASTFOCUS", "");
+
+        // YoPList (month/year)
+        if (periodValue != null) {
+            fb.add("ctl00$MainContent$YoPList", periodValue);
+        }
+
+        // group1 (radio group)
+        if (group1Value != null) {
+            fb.add("ctl00$MainContent$group1", group1Value);
+        }
+
+        // Add hidden fields (VIEWSTATE / EVENTVALIDATION / GENERATOR etc) from previous page
+        if (prev != null && prev.hidden != null) {
+            for (Map.Entry<String, String> e : prev.hidden.entrySet()) {
+                String k = e.getKey();
+                if (k == null) continue;
+
+                // Avoid duplicates for event fields (we already set above)
+                if ("__EVENTTARGET".equals(k) || "__EVENTARGUMENT".equals(k) || "__LASTFOCUS".equals(k)) continue;
+
+                fb.add(k, e.getValue() == null ? "" : e.getValue());
+            }
+        }
+
+        Request post = new Request.Builder()
+                .url(SEMESTER_MARK_URL)
+                .post(fb.build())
+                .header("Referer", SEMESTER_MARK_URL)
+                .header("Origin", BASE)
+                .header("User-Agent", "Mozilla/5.0")
+                .build();
+
+        String html;
+        try (Response res = client.newCall(post).execute()) {
+            if (!res.isSuccessful() || res.body() == null) {
+                throw new IOException("SemesterMark POST failed: " + res.code());
+            }
+            html = res.body().string();
+        }
+
+        Document doc = Jsoup.parse(html);
+        Map<String, String> hidden = extractAspNetHidden(doc);
+        return new PageState(hidden, html);
+    }
+
+    private static Map<String, String> extractAspNetHidden(Document doc) {
+        Map<String, String> map = new HashMap<>();
+        if (doc == null) return map;
+        for (Element input : doc.select("input[type=hidden][name]")) {
+            String name = input.attr("name");
+            String value = input.attr("value");
+            if (name != null && !name.trim().isEmpty()) {
+                map.put(name, value == null ? "" : value);
+            }
+        }
+        return map;
+    }
+
+    private List<SemesterResult> parseSemesterResultsHtml(String html) {
+        List<SemesterResult> out = new ArrayList<>();
+        if (html == null || html.trim().isEmpty()) return out;
+
+        Document doc = Jsoup.parse(html);
+
+        Element table = doc.getElementById("MainContent_GridView1");
+        if (table == null) return out;
+
+        Elements rows = table.select("tr");
+        if (rows.size() <= 1) return out;
+
+        // semesterNo -> subjects
+        Map<Integer, List<SubjectGrade>> semSubjects = new HashMap<>();
+
+        for (int i = 1; i < rows.size(); i++) {
+            Elements tds = rows.get(i).select("td");
+            if (tds.size() < 7) continue;
+
+            int semesterNo = safeInt(tds.get(2).text()); // "1", "2", ...
+            String courseName = tds.get(4).text().trim();
+            String grade = tds.get(6).text().trim();
+
+            if (semesterNo <= 0) continue;
+
+            List<SubjectGrade> list = semSubjects.get(semesterNo);
+            if (list == null) list = new ArrayList<>();
+
+            list.add(new SubjectGrade(courseName, grade));
+            semSubjects.put(semesterNo, list);
+        }
+
+        List<Integer> semNos = new ArrayList<>(semSubjects.keySet());
+        Collections.sort(semNos);
+
+        for (Integer semNo : semNos) {
+            List<SubjectGrade> subjects = semSubjects.get(semNo);
+            double tgpa = computeTgpaEqualWeight(subjects);
+            out.add(new SemesterResult("Semester " + semNo, tgpa, subjects));
+        }
+
+        return out;
+    }
+
+    /** TGPA approximation: equal weight per subject (credits not available on SemesterMark.aspx). */
+    private double computeTgpaEqualWeight(List<SubjectGrade> subjects) {
+        if (subjects == null || subjects.isEmpty()) return 0.0;
+
+        double sum = 0;
+        int count = 0;
+
+        for (SubjectGrade sg : subjects) {
+            if (sg == null) continue;
+            String g = (sg.grade == null) ? "" : sg.grade.trim().toUpperCase(Locale.US);
+            if (g.isEmpty()) continue;
+
+            double p = gradeToPoint(g);
+            // include fails/RA as 0 in average
+            sum += p;
+            count++;
+        }
+
+        if (count == 0) return 0.0;
+
+        double v = sum / count;
+        // round 2 decimals
+        return Math.round(v * 100.0) / 100.0;
+    }
+
+    /** Grade → Point mapping (best-effort; AMS page doesn’t provide credits/points). */
+    private double gradeToPoint(String g) {
+        if (g == null) return 0;
+
+        g = g.trim().toUpperCase(Locale.US);
+
+        // common grades seen
+        switch (g) {
+            case "O":  return 10.0;
+            case "S":  return 9.0;
+            case "A+": return 9.0;
+            case "A":  return 8.0;
+            case "B+": return 7.0;
+            case "B":  return 6.0;
+            case "C":  return 5.0;
+            case "D":  return 4.0;
+
+            // withheld / fail-like
+            case "RA":
+            case "F":
+            case "AB":
+            case "NE":
+            case "NC":
+            case "ND":
+            case "WH1":
+            case "WH2":
+            case "WH3":
+            case "WH4":
+                return 0.0;
+        }
+
+        // if it contains WH*
+        if (g.startsWith("WH")) return 0.0;
+
+        return 0.0;
+    }
+
+    private int extractSemesterNumber(String semesterName) {
+        if (semesterName == null) return 0;
+        Matcher m = Pattern.compile("(\\d+)").matcher(semesterName);
+        if (m.find()) return safeInt(m.group(1));
+        return 0;
     }
 
     // -------------------- Status logic --------------------
@@ -489,7 +753,6 @@ public class AmsClient {
         return "Completed";
     }
 
-    // Parses: "8-8.50 AM", "12.45-1.35 PM"
     private int[] parseSlotMinutes(String slot) {
         try {
             String s = slot.trim().replace(" ", "");
@@ -549,17 +812,6 @@ public class AmsClient {
         return null;
     }
 
-    private static Map<String, String> extractHiddenFieldsFromDelta(String delta) {
-        Map<String, String> map = new HashMap<>();
-        String[] parts = delta.split("\\|");
-        for (int i = 0; i < parts.length - 2; i++) {
-            if ("hiddenField".equals(parts[i])) {
-                map.put(parts[i + 1], parts[i + 2]);
-            }
-        }
-        return map;
-    }
-
     private static String getFirstOrSelectedOptionValue(Document doc, String selectId) {
         Element sel = doc.getElementById(selectId);
         if (sel == null) return null;
@@ -570,7 +822,7 @@ public class AmsClient {
         Element first = sel.selectFirst("option");
         if (first != null) return first.attr("value");
 
-        return null; // no options
+        return null;
     }
 
     // -------------------- Small utils --------------------
@@ -633,7 +885,6 @@ public class AmsClient {
         return e == null ? "" : e.text().trim();
     }
 
-    // Used by StudentDashboardActivity spinner default selection
     public static String getTodayWeekdayNameStatic() {
         return new SimpleDateFormat("EEEE", Locale.US).format(new Date());
     }

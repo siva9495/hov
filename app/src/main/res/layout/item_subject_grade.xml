@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <TextView
+        android:id="@+id/txt_subject"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Mathematics I"
+        android:textColor="#2B2B2B"
+        android:textSize="15sp"
+        android:fontFamily="@font/sf_pro"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/grade_chip"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginEnd="12dp"/>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/grade_chip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#D1D5DB"
+        android:backgroundTint="#F3F4F6"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:id="@+id/txt_grade"
+            android:layout_width="56dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="A+"
+            android:textColor="#111827"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/sf_pro" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#0F000000"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

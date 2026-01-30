@@ -19,6 +19,7 @@ import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
 import com.siva.homeofveltech.UI.Attendance.SubjectAttendanceActivity;
+import com.siva.homeofveltech.UI.Result.StudentResultsActivity;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -74,6 +75,10 @@ public class StudentDashboardActivity extends AppCompatActivity {
 
         findViewById(R.id.collegeEssentialAttendance).setOnClickListener(v -> {
             startActivity(new Intent(this, SubjectAttendanceActivity.class));
+        });
+
+        findViewById(R.id.collegeEssentialResults).setOnClickListener(v -> {
+            startActivity(new Intent(this, StudentResultsActivity.class));
         });
 
 
