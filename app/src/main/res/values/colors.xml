@@ -24,10 +24,6 @@
 
     <color name="splash_background">#FFFBF0</color>
 
-    <color name="status_ongoing">#22C55E</color>     <!-- green -->
-    <color name="status_completed">#64748B</color>   <!-- slate/gray -->
-    <color name="status_upcoming">#F5A300</color>    <!-- your primary orange -->
-
     <color name="shimmer_color">#E0E0E0</color>
 
     <color name="att_red">#EF4444</color>
@@ -42,6 +38,19 @@
     <color name="chip_red_bg">#FDECEC</color>
     <color name="chip_gray_bg">#F3F4F6</color>
     <color name="chip_stroke_gray">#D1D5DB</color>
+
+    <color name="timetable_text_primary">#1F1F1F</color>
+    <color name="timetable_text_secondary">#7A7A7A</color>
+    <color name="timetable_time_text">#B26A00</color>
+
+    <!-- soft orange accent -->
+    <color name="brand_orange_soft">#66F5A300</color>
+
+    <!-- status colors -->
+    <color name="status_ongoing">#2E7D32</color>     <!-- green -->
+    <color name="status_upcoming">#9E9E9E</color>
+    <color name="status_completed">#E0E0E0</color>   <!-- light gray -->
+    <color name="status_text_dark">#4A4A4A</color>
 
 
 

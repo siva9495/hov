@@ -9,6 +9,7 @@
         android:id="@+id/shimmer_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginTop="60dp"
         app:shimmer_auto_start="true">
 
         <LinearLayout
@@ -19,7 +20,6 @@
             <include layout="@layout/shimmer_student_dashboard" />
 
         </LinearLayout>
-
     </com.facebook.shimmer.ShimmerFrameLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -37,25 +37,34 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Header -->
-            <RelativeLayout
-                android:id="@+id/header_layout"
+            <!-- ✅ Professional Header -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
+                android:layout_marginTop="36dp"
                 android:paddingStart="20dp"
-                android:paddingEnd="20dp">
+                android:paddingEnd="20dp"
+                android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/txt_greeting"
+                    android:id="@+id/txt_welcome"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Hello!"
+                    android:text="Welcome"
                     android:textColor="#F5A300"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/sf_pro" />
+
+                <TextView
+                    android:id="@+id/txt_student_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Student Name"
+                    android:textColor="#2D2D2D"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:fontFamily="@font/sf_pro" />
-            </RelativeLayout>
+            </LinearLayout>
 
             <!-- Timetable Title -->
             <TextView
@@ -63,19 +72,60 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="20dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="14dp"
                 android:text="Today's Timetable"
                 android:textColor="#4A4A4A"
-                android:textSize="26sp"
+                android:textSize="24sp"
                 android:textStyle="bold"
                 android:fontFamily="@font/sf_pro" />
 
-            <!-- Horizontal RecyclerView -->
+            <!-- ✅ Empty state card (shown only when no classes) -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_timetable_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginTop="14dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_timetable_empty"
+                    android:padding="16dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/txt_timetable_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="No classes today"
+                        android:textColor="#2D2D2D"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:fontFamily="@font/sf_pro" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android.text="Tap Timetable in College Essentials to view full week schedule."
+                        android:textColor="#6B6B6B"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/sf_pro" />
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- ✅ Timetable RecyclerView (only when classes exist) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerViewTimetable"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="14dp"
                 android:clipToPadding="false"
                 android:paddingStart="20dp"
                 android:paddingEnd="20dp"
@@ -104,12 +154,12 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="20dp"
                 android:columnCount="2"
-                android:useDefaultMargins="true"
+                android.useDefaultMargins="true"
                 android:alignmentMode="alignMargins"
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- ✅ Attendance (Overlay pinned to top-right) -->
+                <!-- Attendance (with overlay %) -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -162,17 +212,13 @@
                                     android:textSize="16sp"
                                     android:fontFamily="@font/sf_pro" />
                             </LinearLayout>
-
                         </RelativeLayout>
                     </androidx.cardview.widget.CardView>
 
-                    <!-- ✅ Overlay pinned to card top-end -->
                     <LinearLayout
-                        android:id="@+id/attendance_overlay"
                         android:layout_width="52dp"
                         android:layout_height="32dp"
                         android:gravity="center"
-                        android:orientation="vertical"
                         android:background="@drawable/overlaybuttonwhite"
                         android:elevation="10dp"
                         android:translationX="16dp"
@@ -193,9 +239,89 @@
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <!-- Results -->
+                <!-- ✅ Results (with overlay CGPA) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:layout_marginTop="30dp">
+
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/collegeEssentialResults"
+                        android:layout_width="150dp"
+                        android:layout_height="180dp"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp"
+                        app:cardUseCompatPadding="false"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintStart_toStartOf="parent">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/radical_gradient">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_above="@id/lltitleresults"
+                                android:gravity="center">
+
+                                <ImageView
+                                    android:layout_width="60dp"
+                                    android:layout_height="60dp"
+                                    android:src="@drawable/results_icon" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/lltitleresults"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp"
+                                android:layout_alignParentBottom="true"
+                                android:background="@drawable/circlecollegeessentialstitle"
+                                android:gravity="center">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Results"
+                                    android:textColor="@color/DarkGray"
+                                    android:textStyle="bold"
+                                    android:textSize="16sp"
+                                    android:fontFamily="@font/sf_pro" />
+                            </LinearLayout>
+
+                        </RelativeLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <LinearLayout
+                        android:layout_width="58dp"
+                        android:layout_height="32dp"
+                        android:gravity="center"
+                        android:background="@drawable/overlaybuttonwhite"
+                        android:elevation="10dp"
+                        android:translationX="16dp"
+                        android:translationY="-10dp"
+                        app:layout_constraintTop_toTopOf="@id/collegeEssentialResults"
+                        app:layout_constraintEnd_toEndOf="@id/collegeEssentialResults">
+
+                        <TextView
+                            android:id="@+id/txt_overlay_results_cgpa"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="--"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textColor="@android:color/black"
+                            android:fontFamily="@font/sf_pro" />
+                    </LinearLayout>
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- ✅ NEW: Timetable (3rd card) -->
                 <androidx.cardview.widget.CardView
-                    android:id="@+id/collegeEssentialResults"
+                    android:id="@+id/collegeEssentialTimetable"
                     android:layout_width="150dp"
                     android:layout_height="180dp"
                     app:cardCornerRadius="20dp"
@@ -210,17 +336,17 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:layout_above="@id/lltitleresults"
+                            android:layout_above="@id/lltitletimetable"
                             android:gravity="center">
 
                             <ImageView
                                 android:layout_width="60dp"
                                 android:layout_height="60dp"
-                                android:src="@drawable/results_icon" />
+                                android:src="@drawable/ic_timetable" />
                         </LinearLayout>
 
                         <LinearLayout
-                            android:id="@+id/lltitleresults"
+                            android:id="@+id/lltitletimetable"
                             android:layout_width="match_parent"
                             android:layout_height="40dp"
                             android:layout_alignParentBottom="true"
@@ -230,7 +356,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Results"
+                                android:text="Timetable"
                                 android:textColor="@color/DarkGray"
                                 android:textStyle="bold"
                                 android:textSize="16sp"
@@ -240,7 +366,7 @@
                     </RelativeLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- Fee Statements -->
+                <!-- Fee Statements (now 4th) -->
                 <androidx.cardview.widget.CardView
                     android:id="@+id/collegeEssentialFeeStatements"
                     android:layout_width="150dp"
@@ -287,90 +413,56 @@
                     </RelativeLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- ✅ Exams (Overlay pinned to top-right) -->
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:clipChildren="false"
-                    android:clipToPadding="false"
+                <!-- Exams (last) -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/collegeEssentialExams"
+                    android:layout_width="150dp"
+                    android:layout_height="180dp"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
                     android:layout_marginTop="30dp">
 
-                    <androidx.cardview.widget.CardView
-                        android:id="@+id/collegeEssentialExams"
-                        android:layout_width="150dp"
-                        android:layout_height="180dp"
-                        app:cardCornerRadius="20dp"
-                        app:cardElevation="0dp"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/radical_gradient">
 
-                        <RelativeLayout
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:background="@drawable/radical_gradient">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:layout_above="@id/lltitleexams"
-                                android:gravity="center">
+                            android:layout_above="@id/lltitleexams"
+                            android:gravity="center">
 
                                 <ImageView
                                     android:layout_width="60dp"
                                     android:layout_height="60dp"
                                     android:src="@drawable/exams_icon" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:id="@+id/lltitleexams"
-                                android:layout_width="match_parent"
-                                android:layout_height="40dp"
-                                android:layout_alignParentBottom="true"
-                                android:background="@drawable/circlecollegeessentialstitle"
-                                android:gravity="center">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Exams"
-                                    android:textColor="@color/DarkGray"
-                                    android:textStyle="bold"
-                                    android:textSize="16sp"
-                                    android:fontFamily="@font/sf_pro" />
                         </LinearLayout>
 
-                        </RelativeLayout>
-                    </androidx.cardview.widget.CardView>
+                        <LinearLayout
+                            android:id="@+id/lltitleexams"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_alignParentBottom="true"
+                            android:background="@drawable/circlecollegeessentialstitle"
+                            android:gravity="center">
 
-                    <LinearLayout
-                        android:id="@+id/exams_overlay"
-                        android:layout_width="40dp"
-                        android:layout_height="32dp"
-                        android:gravity="center"
-                        android:background="@drawable/overlaybuttonwhite"
-                        android:elevation="10dp"
-                        android:translationX="16dp"
-                        android:translationY="-10dp"
-                        app:layout_constraintTop_toTopOf="@id/collegeEssentialExams"
-                        app:layout_constraintEnd_toEndOf="@id/collegeEssentialExams">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Exams"
+                                android:textColor="@color/DarkGray"
+                                android:textStyle="bold"
+                                android:textSize="16sp"
+                                android:fontFamily="@font/sf_pro" />
+                        </LinearLayout>
 
-                        <TextView
-                            android:id="@+id/txt_overlay_exams"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@android:color/black"
-                            android:fontFamily="@font/sf_pro" />
-                    </LinearLayout>
-
-                </androidx.constraintlayout.widget.ConstraintLayout>
+                    </RelativeLayout>
+                </androidx.cardview.widget.CardView>
 
             </GridLayout>
 
         </LinearLayout>
-
     </androidx.core.widget.NestedScrollView>
 
 </FrameLayout>

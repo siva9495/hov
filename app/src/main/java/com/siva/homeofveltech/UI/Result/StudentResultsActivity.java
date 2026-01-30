@@ -70,6 +70,8 @@ public class StudentResultsActivity extends AppCompatActivity {
         shimmerLayout = findViewById(R.id.shimmer_layout);
         contentContainer = findViewById(R.id.content_container);
 
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+
         TextView txtTitle = findViewById(R.id.txt_page_title);
         ImageView btnInfo = findViewById(R.id.btn_info);
 
@@ -236,17 +238,6 @@ public class StudentResultsActivity extends AppCompatActivity {
                 int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.92f);
                 w.setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT);
             }
-
-            dialogView.setAlpha(0f);
-            dialogView.setScaleX(0.96f);
-            dialogView.setScaleY(0.96f);
-            dialogView.animate()
-                    .alpha(1f)
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(180)
-                    .setInterpolator(new DecelerateInterpolator())
-                    .start();
         });
 
         dialog.setOnDismissListener(d -> setBlurBackground(false));

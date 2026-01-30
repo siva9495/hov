@@ -1,6 +1,5 @@
 package com.siva.homeofveltech.Adapter;
 
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +14,9 @@ import com.siva.homeofveltech.R;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TimetableAdapter extends RecyclerView.Adapter<TimetableAdapter.VH> {
 
@@ -41,39 +43,44 @@ public class TimetableAdapter extends RecyclerView.Adapter<TimetableAdapter.VH> 
     public void onBindViewHolder(@NonNull VH h, int position) {
         TimetableItem it = items.get(position);
 
-        boolean isMessageCard =
-                TextUtils.isEmpty(it.time) && TextUtils.isEmpty(it.status) && !TextUtils.isEmpty(it.code);
+        // Subject fallback
+        String subject = (it.subject == null || it.subject.trim().isEmpty()) ? it.code : it.subject;
+        h.tvSubject.setText(subject);
+        h.tvCode.setText(it.code == null ? "" : it.code);
 
-        if (isMessageCard) {
-            h.emptyText.setVisibility(View.VISIBLE);
-            h.emptyText.setText(it.code);
+        h.tvTime.setText(prettySlot(it.time));
+        h.tvTime.setText(prettySlot(it.time));
 
-            h.tvCode.setVisibility(View.GONE);
-            h.tvTime.setVisibility(View.GONE);
-            h.tvStatus.setVisibility(View.GONE);
-            return;
-        }
+        String st = (it.status == null) ? "" : it.status.trim();
+        if (st.equalsIgnoreCase("On Going")) st = "Live";
+        else if (st.equalsIgnoreCase("Upcoming")) st = "Next";
+        else if (st.equalsIgnoreCase("Completed")) st = "Done";
+        h.tvStatus.setText(st);
 
-        h.emptyText.setVisibility(View.GONE);
-
-        h.tvCode.setVisibility(View.VISIBLE);
-        h.tvTime.setVisibility(View.VISIBLE);
-        h.tvStatus.setVisibility(View.VISIBLE);
-
-        h.tvCode.setText(it.code);     // ✅ course code only
-        h.tvTime.setText(it.time);     // ✅ time only
-        h.tvStatus.setText(it.status); // ✅ status only
 
         int colorRes;
-        if ("On Going".equalsIgnoreCase(it.status)) colorRes = R.color.status_ongoing;
-        else if ("Completed".equalsIgnoreCase(it.status)) colorRes = R.color.status_completed;
-        else colorRes = R.color.status_upcoming;
+        boolean lightChip = false;
 
-        // status chip tint (works because statusText has bg drawable)
+        if ("On Going".equalsIgnoreCase(it.status)) {
+            colorRes = R.color.status_ongoing;
+        } else if ("Completed".equalsIgnoreCase(it.status)) {
+            colorRes = R.color.status_completed;
+            lightChip = true;
+        } else {
+            colorRes = R.color.status_upcoming;
+        }
+
         h.tvStatus.setBackgroundTintList(
                 ContextCompat.getColorStateList(h.itemView.getContext(), colorRes)
         );
+
+        // ✅ readable text on chip
+        h.tvStatus.setTextColor(ContextCompat.getColor(
+                h.itemView.getContext(),
+                lightChip ? R.color.status_text_dark : android.R.color.white
+        ));
     }
+
 
     @Override
     public int getItemCount() {
@@ -81,14 +88,46 @@ public class TimetableAdapter extends RecyclerView.Adapter<TimetableAdapter.VH> 
     }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView tvCode, tvTime, tvStatus, emptyText;
+        TextView tvCode, tvSubject, tvTime, tvStatus, emptyText;
 
         VH(@NonNull View itemView) {
             super(itemView);
-            tvCode = itemView.findViewById(R.id.subject);
-            tvTime = itemView.findViewById(R.id.timeSlot);
+            tvCode = itemView.findViewById(R.id.tv_code);
+            tvSubject = itemView.findViewById(R.id.tv_subject);
+            tvTime = itemView.findViewById(R.id.tv_time);
             tvStatus = itemView.findViewById(R.id.statusText);
             emptyText = itemView.findViewById(R.id.emptyText);
         }
+    }
+
+    // ✅ 2.45-3.35 PM  ->  2:45 – 3:35 PM
+    private String prettySlot(String raw) {
+        if (raw == null) return "";
+        String s = raw.trim().replace(" ", "");
+
+        // Pattern: 2.45-3.35PM OR 2:45-3:35PM
+        Pattern p = Pattern.compile(
+                "([0-9]{1,2})(?:\\.|:)([0-9]{1,2})-([0-9]{1,2})(?:\\.|:)([0-9]{1,2})(AM|PM)",
+                Pattern.CASE_INSENSITIVE
+        );
+        Matcher m = p.matcher(s);
+        if (m.find()) {
+            String sh = m.group(1);
+            String sm = two(m.group(2));
+            String eh = m.group(3);
+            String em = two(m.group(4));
+            String ap = m.group(5).toUpperCase(Locale.US);
+            return sh + ":" + sm + " – " + eh + ":" + em + " " + ap;
+        }
+
+        // Fallback: just replace dot between digits
+        return raw.replaceAll("(\\d)\\.(\\d)", "$1:$2");
+    }
+
+    private String two(String mm) {
+        if (mm == null) return "00";
+        mm = mm.trim();
+        if (mm.length() == 1) return mm + "0";
+        return mm;
     }
 }

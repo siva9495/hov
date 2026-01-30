@@ -1,85 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="140dp"
+    android:layout_width="230dp"
     android:layout_height="140dp"
     android:layout_marginEnd="12dp"
-    app:cardCornerRadius="20dp"
+    app:cardCornerRadius="18dp"
     app:cardElevation="0dp"
-    app:cardUseCompatPadding="false">
+    app:cardUseCompatPadding="false"
+    app:cardBackgroundColor="@android:color/transparent">
 
-    <RelativeLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/background_timetable"
-        android:padding="12dp">
+        android:background="@drawable/bg_timetable_card_surface"
+        android:padding="14dp">
 
-        <!-- ✅ Message (No classes / Weekend) -->
+        <!-- Accent strip (small, professional) -->
+        <View
+            android:id="@+id/accent_strip"
+            android:layout_width="4dp"
+            android:layout_height="0dp"
+            android:background="@color/brand_orange_soft"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <!-- Subject -->
+        <TextView
+            android:id="@+id/tv_subject"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="8dp"
+            android:text="Calculus and Transforms"
+            android:textColor="@color/timetable_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/sf_pro"
+            android:maxLines="2"
+            android:ellipsize="end"
+            app:layout_constraintStart_toEndOf="@id/accent_strip"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/statusText" />
+
+        <!-- Status chip -->
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="24dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:gravity="center"
+            android:text="Completed"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/sf_pro"
+            android:background="@drawable/bg_status_chip"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Course code -->
+        <TextView
+            android:id="@+id/tv_code"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="6dp"
+            android:text="2510MA1002"
+            android:textColor="@color/timetable_text_secondary"
+            android:textSize="12sp"
+            android:fontFamily="@font/sf_pro"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintStart_toEndOf="@id/accent_strip"
+            app:layout_constraintTop_toBottomOf="@id/tv_subject"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Time pill -->
+        <LinearLayout
+            android:id="@+id/time_pill"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_timetable_time_pill"
+            android:gravity="center"
+            app:layout_constraintStart_toEndOf="@id/accent_strip"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <TextView
+                android:id="@+id/tv_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10:45 – 11:35 AM"
+                android:textColor="@color/timetable_time_text"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:fontFamily="@font/sf_pro" />
+        </LinearLayout>
+
+        <!-- (Optional) message view if needed later -->
         <TextView
             android:id="@+id/emptyText"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
             android:text="No classes available"
-            android:textColor="@android:color/white"
+            android:textColor="@color/timetable_text_primary"
             android:textSize="14sp"
             android:textStyle="bold"
             android:fontFamily="@font/sf_pro"
             android:gravity="center"
-            android:maxLines="3"
-            android:ellipsize="end"
-            android:visibility="gone" />
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- ✅ Course Code -->
-        <TextView
-            android:id="@+id/subject"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:text="2510CS1002"
-            android:textColor="@android:color/white"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:fontFamily="@font/sf_pro"
-            android:maxLines="2"
-            android:ellipsize="end" />
-
-        <!-- ✅ Status chip -->
-        <TextView
-            android:id="@+id/statusText"
-            android:layout_width="wrap_content"
-            android:layout_height="26dp"
-            android:layout_below="@id/subject"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="10dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:gravity="center"
-            android:text="Upcoming"
-            android:textColor="@android:color/white"
-            android:textSize="12sp"
-            android:fontFamily="@font/sf_pro"
-            android:background="@drawable/bg_status_chip" />
-
-        <!-- ✅ Time slot pill -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_alignParentBottom="true"
-            android:background="@drawable/circlewithwhitebg"
-            android:gravity="center">
-
-            <TextView
-                android:id="@+id/timeSlot"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="8.55-9.45 AM"
-                android:textColor="@color/DarkGray"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:fontFamily="@font/sf_pro" />
-        </LinearLayout>
-
-    </RelativeLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.cardview.widget.CardView>
