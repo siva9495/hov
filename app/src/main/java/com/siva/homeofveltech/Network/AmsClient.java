@@ -368,7 +368,12 @@ public class AmsClient {
 
         double overall = parseOverallAttendance(doc);
 
-        return new StudentDashboardData(studentName, branch, overall, timetableByDay);
+        // ✅ Fetch results and compute CGPA
+        List<SemesterResult> results = fetchAllSemesterResultsRegular();
+        double cgpa = computeCgpa(results);
+
+
+        return new StudentDashboardData(studentName, branch, overall, cgpa, timetableByDay);
     }
 
     private double parseOverallAttendance(Document doc) {
@@ -681,6 +686,31 @@ public class AmsClient {
         if (count == 0) return 0.0;
 
         double v = sum / count;
+        // round 2 decimals
+        return Math.round(v * 100.0) / 100.0;
+    }
+
+    /**
+     * CGPA = Sum of (TGPA * number of subjects in sem) / Total number of subjects
+     * This is an approximation as we don't have credits.
+     */
+    private double computeCgpa(List<SemesterResult> semesterResults) {
+        if (semesterResults == null || semesterResults.isEmpty()) return 0.0;
+
+        double totalPoints = 0;
+        int totalSubjects = 0;
+
+        for (SemesterResult sr : semesterResults) {
+            if (sr == null || sr.subjects == null || sr.subjects.isEmpty()) continue;
+
+            int numSubjects = sr.subjects.size();
+            totalPoints += sr.tgpa * numSubjects;
+            totalSubjects += numSubjects;
+        }
+
+        if (totalSubjects == 0) return 0.0;
+
+        double v = totalPoints / totalSubjects;
         // round 2 decimals
         return Math.round(v * 100.0) / 100.0;
     }

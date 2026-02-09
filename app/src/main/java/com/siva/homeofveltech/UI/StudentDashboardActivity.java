@@ -157,6 +157,15 @@ public class StudentDashboardActivity extends AppCompatActivity {
                         }
                     }
 
+                    // ✅ Result overlay
+                    if (txtOverlayCgpa != null) {
+                        if (data.overallGpa > 0) {
+                            txtOverlayCgpa.setText(String.format(Locale.US, "%.2f", data.overallGpa));
+                        } else {
+                            txtOverlayCgpa.setText("--");
+                        }
+                    }
+
                     // Weekend handling (show empty-state nicely)
                     if (isWeekend(todayName)) {
                         showTimetableEmpty("No classes (Weekend)");
@@ -187,6 +196,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     setLoading(false);
                     if (txtOverlayAttendance != null) txtOverlayAttendance.setText("--%");
+                    if (txtOverlayCgpa != null) txtOverlayCgpa.setText("--");
                     showTimetableEmpty("Timetable not available");
                     Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
