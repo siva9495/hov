@@ -1,6 +1,7 @@
 package com.siva.homeofveltech.UI.Login;
 
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.View;
@@ -11,22 +12,23 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatButton;
 
+import com.google.android.material.button.MaterialButton;
 import com.siva.homeofveltech.Model.StudentProfile;
 import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
 import com.siva.homeofveltech.UI.Dashboard.DashboardActivity;
 
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private EditText etUsername, etPassword;
-    private ImageView ivEyeIcon;
-    private AppCompatButton btnLogin;
+    private EditText etUsername, etPassword, etCaptcha;
+    private ImageView ivEyeIcon, ivCaptcha, ivRefreshCaptcha;
+    private MaterialButton btnLogin;
 
     private boolean isPasswordVisible = false;
 
@@ -34,6 +36,7 @@ public class LoginActivity extends AppCompatActivity {
     private final AmsClient amsClient = new AmsClient();
 
     private PrefsManager prefs;
+    private Map<String, String> hiddenFields;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -44,7 +47,10 @@ public class LoginActivity extends AppCompatActivity {
 
         etUsername = findViewById(R.id.etUsername);
         etPassword = findViewById(R.id.etPassword);
+        etCaptcha = findViewById(R.id.etCaptcha);
         ivEyeIcon  = findViewById(R.id.ivEyeIcon);
+        ivCaptcha = findViewById(R.id.ivCaptcha);
+        ivRefreshCaptcha = findViewById(R.id.ivRefreshCaptcha);
         btnLogin   = findViewById(R.id.btnLogin);
 
         if (prefs.hasCredentials()) {
@@ -53,21 +59,24 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         ivEyeIcon.setOnClickListener(v -> togglePasswordVisibility());
+        ivRefreshCaptcha.setOnClickListener(v -> fetchCaptcha());
 
         btnLogin.setOnClickListener(v -> {
             hideKeyboard();
 
             String username = etUsername.getText() == null ? "" : etUsername.getText().toString().trim();
             String password = etPassword.getText() == null ? "" : etPassword.getText().toString().trim();
+            String captcha = etCaptcha.getText() == null ? "" : etCaptcha.getText().toString().trim();
 
             if (username.isEmpty()) { etUsername.setError("Enter Username"); etUsername.requestFocus(); return; }
             if (password.isEmpty()) { etPassword.setError("Enter Password"); etPassword.requestFocus(); return; }
+            if (captcha.isEmpty()) { etCaptcha.setError("Enter Captcha"); etCaptcha.requestFocus(); return; }
 
             setLoading(true);
 
             executor.execute(() -> {
                 try {
-                    boolean ok = amsClient.login(username, password);
+                    boolean ok = amsClient.login(username, password, captcha, hiddenFields);
 
                     StudentProfile profile = new StudentProfile("", "");
                     if (ok) {
@@ -92,7 +101,8 @@ public class LoginActivity extends AppCompatActivity {
                             startActivity(i);
                             finish();
                         } else {
-                            Toast.makeText(this, "Invalid Username / Password", Toast.LENGTH_LONG).show();
+                            Toast.makeText(this, "Invalid Credentials or Captcha", Toast.LENGTH_LONG).show();
+                            fetchCaptcha(); // Refresh captcha on failure
                         }
                     });
 
@@ -100,9 +110,32 @@ public class LoginActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         setLoading(false);
                         Toast.makeText(this, "Server error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        fetchCaptcha(); // Refresh captcha on error
                     });
                 }
             });
+        });
+
+        fetchCaptcha();
+    }
+
+    private void fetchCaptcha() {
+        setLoading(true);
+        executor.execute(() -> {
+            try {
+                AmsClient.LoginPageData pageData = amsClient.fetchLoginPage();
+                hiddenFields = pageData.hiddenFields;
+                runOnUiThread(() -> {
+                    ivCaptcha.setImageBitmap(BitmapFactory.decodeByteArray(pageData.captchaImage, 0, pageData.captchaImage.length));
+                    etCaptcha.setText("");
+                    setLoading(false);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Failed to load captcha: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    setLoading(false);
+                });
+            }
         });
     }
 
@@ -127,7 +160,9 @@ public class LoginActivity extends AppCompatActivity {
 
         etUsername.setEnabled(!loading);
         etPassword.setEnabled(!loading);
+        etCaptcha.setEnabled(!loading);
         ivEyeIcon.setEnabled(!loading);
+        ivRefreshCaptcha.setEnabled(!loading);
     }
 
     private void hideKeyboard() {

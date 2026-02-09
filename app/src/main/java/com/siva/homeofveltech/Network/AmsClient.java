@@ -14,6 +14,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -32,11 +33,13 @@ import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class AmsClient {
 
     private static final String BASE = "https://ams.veltech.edu.in/";
     private static final String LOGIN_URL = BASE + "index.aspx";
+    private static final String CAPTCHA_URL = BASE + "Captcha.aspx";
     private static final String ATTENDANCE_URL = BASE + "Attendance.aspx";
     private static final String SEMESTER_MARK_URL = BASE + "SemesterMark.aspx";
 
@@ -54,7 +57,17 @@ public class AmsClient {
 
     // -------------------- LOGIN --------------------
 
-    private Map<String, String> fetchHiddenFields() throws IOException {
+    public static class LoginPageData {
+        public final Map<String, String> hiddenFields;
+        public final byte[] captchaImage;
+
+        LoginPageData(Map<String, String> hiddenFields, byte[] captchaImage) {
+            this.hiddenFields = hiddenFields;
+            this.captchaImage = captchaImage;
+        }
+    }
+
+    public LoginPageData fetchLoginPage() throws IOException {
         String html = get(LOGIN_URL);
         Document doc = Jsoup.parse(html);
 
@@ -66,22 +79,26 @@ public class AmsClient {
         if (!fields.containsKey("__VIEWSTATE") || !fields.containsKey("__EVENTVALIDATION")) {
             throw new IOException("ASP.NET hidden fields not found on login page.");
         }
-        return fields;
+
+        byte[] captcha = getBytes(CAPTCHA_URL);
+
+        return new LoginPageData(fields, captcha);
     }
 
+
     /** Returns true if login success, false if invalid credentials */
-    public boolean login(String username, String password) throws IOException {
+    public boolean login(String username, String password, String captcha, Map<String, String> hiddenFields) throws IOException {
         this.username = username;
         this.password = password;
-        Map<String, String> hidden = fetchHiddenFields();
 
         FormBody.Builder fb = new FormBody.Builder();
-        for (Map.Entry<String, String> e : hidden.entrySet()) {
+        for (Map.Entry<String, String> e : hiddenFields.entrySet()) {
             fb.add(e.getKey(), e.getValue() == null ? "" : e.getValue());
         }
 
         fb.add("txtUserName", username);
         fb.add("txtPassword", password);
+        fb.add("txtCaptcha", captcha);
         fb.add("Button1", "LET'S GO");
 
         Request post = new Request.Builder()
@@ -109,11 +126,14 @@ public class AmsClient {
         }
     }
 
-    private void renewSession() throws IOException {
-        if (username == null || password == null) {
-            throw new IOException("Credentials not available for session renewal.");
+    public static class SessionExpiredException extends IOException {
+        public SessionExpiredException() {
+            super("Session expired. Please log in again.");
         }
-        login(username, password);
+    }
+
+    private void renewSession() throws IOException {
+        throw new SessionExpiredException();
     }
 
     private void ensureSession() throws IOException {
@@ -513,17 +533,17 @@ public class AmsClient {
         for (String p : periods) {
             List<SemesterResult> one = fetchSemesterResultsForPeriod(p, type);
             for (SemesterResult sr : one) {
-                int semNo = extractSemesterNumber(sr.semesterName);
-                if (semNo <= 0) continue;
+                int semesterNo = extractSemesterNumber(sr.semesterName);
+                if (semesterNo <= 0) continue;
 
                 // If already exists, keep the one with more subjects (safer)
-                if (!semMap.containsKey(semNo)) {
-                    semMap.put(semNo, sr);
+                if (!semMap.containsKey(semesterNo)) {
+                    semMap.put(semesterNo, sr);
                 } else {
-                    SemesterResult old = semMap.get(semNo);
+                    SemesterResult old = semMap.get(semesterNo);
                     int oldCount = (old.subjects == null) ? 0 : old.subjects.size();
                     int newCount = (sr.subjects == null) ? 0 : sr.subjects.size();
-                    if (newCount > oldCount) semMap.put(semNo, sr);
+                    if (newCount > oldCount) semMap.put(semesterNo, sr);
                 }
             }
         }
@@ -908,6 +928,21 @@ public class AmsClient {
                 throw new IOException("HTTP " + res.code() + " for " + url);
             }
             return res.body().string();
+        }
+    }
+
+    private byte[] getBytes(String url) throws IOException {
+        Request req = new Request.Builder()
+                .url(url)
+                .get()
+                .header("User-Agent", "Mozilla/5.0")
+                .build();
+
+        try (Response res = client.newCall(req).execute()) {
+            if (!res.isSuccessful() || res.body() == null) {
+                throw new IOException("HTTP " + res.code() + " for " + url);
+            }
+            return res.body().bytes();
         }
     }
 
