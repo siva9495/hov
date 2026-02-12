@@ -21,6 +21,18 @@ public class PrefsManager {
     private static final String KEY_RESULTS_UPDATED_AT = "results_updated_at";
     private static final String KEY_RESULTS_CGPA = "results_overall_cgpa";
 
+    // ✅ Dashboard data cache
+    private static final String KEY_DASHBOARD_JSON = "dashboard_json";
+    private static final String KEY_DASHBOARD_UPDATED_AT = "dashboard_updated_at";
+
+    // ✅ Attendance cache
+    private static final String KEY_ATTENDANCE_JSON = "attendance_json";
+    private static final String KEY_ATTENDANCE_UPDATED_AT = "attendance_updated_at";
+
+    // ✅ Timetable cache
+    private static final String KEY_TIMETABLE_JSON = "timetable_json";
+    private static final String KEY_TIMETABLE_UPDATED_AT = "timetable_updated_at";
+
     private final SharedPreferences sp;
 
     public PrefsManager(Context ctx) {
@@ -35,8 +47,7 @@ public class PrefsManager {
                     FILE,
                     masterKey,
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            );
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
         } catch (Exception e) {
             temp = ctx.getSharedPreferences("home_of_veltech_plain", Context.MODE_PRIVATE);
         }
@@ -54,14 +65,29 @@ public class PrefsManager {
                 .apply();
     }
 
-    public String getUsername() { return sp.getString(KEY_USER, ""); }
-    public String getPassword() { return sp.getString(KEY_PASS, ""); }
+    public String getUsername() {
+        return sp.getString(KEY_USER, "");
+    }
 
-    public String getStudentName() { return sp.getString(KEY_STUDENT_NAME, ""); }
-    public String getBranch() { return sp.getString(KEY_BRANCH, ""); }
+    public String getPassword() {
+        return sp.getString(KEY_PASS, "");
+    }
 
-    public void setShowGrade(boolean show) { sp.edit().putBoolean(KEY_SHOW_GRADE, show).apply(); }
-    public boolean isShowGrade() { return sp.getBoolean(KEY_SHOW_GRADE, true); }
+    public String getStudentName() {
+        return sp.getString(KEY_STUDENT_NAME, "");
+    }
+
+    public String getBranch() {
+        return sp.getString(KEY_BRANCH, "");
+    }
+
+    public void setShowGrade(boolean show) {
+        sp.edit().putBoolean(KEY_SHOW_GRADE, show).apply();
+    }
+
+    public boolean isShowGrade() {
+        return sp.getBoolean(KEY_SHOW_GRADE, true);
+    }
 
     public boolean hasCredentials() {
         return !getUsername().isEmpty() && !getPassword().isEmpty();
@@ -103,5 +129,68 @@ public class PrefsManager {
 
     public void clearAll() {
         sp.edit().clear().apply();
+    }
+
+    // ✅ Dashboard cache
+    public void saveDashboardCache(String dashboardJson) {
+        sp.edit()
+                .putString(KEY_DASHBOARD_JSON, dashboardJson == null ? "" : dashboardJson)
+                .putLong(KEY_DASHBOARD_UPDATED_AT, System.currentTimeMillis())
+                .apply();
+    }
+
+    public String getDashboardCache() {
+        return sp.getString(KEY_DASHBOARD_JSON, "");
+    }
+
+    public long getDashboardCacheUpdatedAt() {
+        return sp.getLong(KEY_DASHBOARD_UPDATED_AT, 0L);
+    }
+
+    public boolean hasDashboardCache() {
+        String j = getDashboardCache();
+        return j != null && !j.trim().isEmpty();
+    }
+
+    // ✅ Attendance cache
+    public void saveAttendanceCache(String attendanceJson) {
+        sp.edit()
+                .putString(KEY_ATTENDANCE_JSON, attendanceJson == null ? "" : attendanceJson)
+                .putLong(KEY_ATTENDANCE_UPDATED_AT, System.currentTimeMillis())
+                .apply();
+    }
+
+    public String getAttendanceCache() {
+        return sp.getString(KEY_ATTENDANCE_JSON, "");
+    }
+
+    public long getAttendanceCacheUpdatedAt() {
+        return sp.getLong(KEY_ATTENDANCE_UPDATED_AT, 0L);
+    }
+
+    public boolean hasAttendanceCache() {
+        String j = getAttendanceCache();
+        return j != null && !j.trim().isEmpty();
+    }
+
+    // ✅ Timetable cache
+    public void saveTimetableCache(String timetableJson) {
+        sp.edit()
+                .putString(KEY_TIMETABLE_JSON, timetableJson == null ? "" : timetableJson)
+                .putLong(KEY_TIMETABLE_UPDATED_AT, System.currentTimeMillis())
+                .apply();
+    }
+
+    public String getTimetableCache() {
+        return sp.getString(KEY_TIMETABLE_JSON, "");
+    }
+
+    public long getTimetableCacheUpdatedAt() {
+        return sp.getLong(KEY_TIMETABLE_UPDATED_AT, 0L);
+    }
+
+    public boolean hasTimetableCache() {
+        String j = getTimetableCache();
+        return j != null && !j.trim().isEmpty();
     }
 }

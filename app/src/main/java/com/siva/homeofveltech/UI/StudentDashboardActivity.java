@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,6 +20,7 @@ import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
 import com.siva.homeofveltech.UI.Attendance.SubjectAttendanceActivity;
+import com.siva.homeofveltech.UI.Dialog.SessionRefreshDialog;
 import com.siva.homeofveltech.UI.Login.LoginActivity;
 import com.siva.homeofveltech.UI.Result.StudentResultsActivity;
 import com.siva.homeofveltech.UI.TimeTable.FullTimeTableActivity;
@@ -36,18 +38,19 @@ public class StudentDashboardActivity extends AppCompatActivity {
     // Header
     private TextView txtWelcome;
     private TextView txtStudentName;
+    private ImageView btnRefresh;
 
     // Timetable section
     private TextView txtTimetableTitle;
     private RecyclerView recyclerViewTimetable;
     private TimetableAdapter adapter;
 
-    private View timetableEmptyCard;     // ✅ NEW empty state card
-    private TextView txtTimetableEmpty;  // ✅ message inside empty card
+    private View timetableEmptyCard; // ✅ NEW empty state card
+    private TextView txtTimetableEmpty; // ✅ message inside empty card
 
     // Overlays
     private TextView txtOverlayAttendance;
-    private TextView txtOverlayCgpa;     // ✅ NEW
+    private TextView txtOverlayCgpa; // ✅ NEW
 
     // Loading
     private ShimmerFrameLayout shimmerLayout;
@@ -68,6 +71,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
         // Header
         txtWelcome = findViewById(R.id.txt_welcome);
         txtStudentName = findViewById(R.id.txt_student_name);
+        btnRefresh = findViewById(R.id.btnRefresh);
 
         // Timetable
         txtTimetableTitle = findViewById(R.id.txt_timetable_title);
@@ -85,24 +89,25 @@ public class StudentDashboardActivity extends AppCompatActivity {
         contentContainer = findViewById(R.id.content_container);
 
         // Essentials clicks
-        findViewById(R.id.collegeEssentialAttendance).setOnClickListener(v ->
-                startActivity(new Intent(this, SubjectAttendanceActivity.class))
-        );
+        findViewById(R.id.collegeEssentialAttendance)
+                .setOnClickListener(v -> startActivity(new Intent(this, SubjectAttendanceActivity.class)));
 
-        findViewById(R.id.collegeEssentialResults).setOnClickListener(v ->
-                startActivity(new Intent(this, StudentResultsActivity.class))
-        );
+        findViewById(R.id.collegeEssentialResults)
+                .setOnClickListener(v -> startActivity(new Intent(this, StudentResultsActivity.class)));
 
         // ✅ NEW: Timetable card click (College Essentials Timetable)
-        findViewById(R.id.collegeEssentialTimetable).setOnClickListener(v ->
-                startActivity(new Intent(this, FullTimeTableActivity.class))
-        );
+        findViewById(R.id.collegeEssentialTimetable)
+                .setOnClickListener(v -> startActivity(new Intent(this, FullTimeTableActivity.class)));
+
+        // Refresh button
+        if (btnRefresh != null) {
+            btnRefresh.setOnClickListener(v -> showRefreshDialog());
+        }
 
         // Recycler
         adapter = new TimetableAdapter(new ArrayList<>());
         recyclerViewTimetable.setLayoutManager(
-                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        );
+                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         recyclerViewTimetable.setAdapter(adapter);
 
         // Header text (professional)
@@ -111,11 +116,14 @@ public class StudentDashboardActivity extends AppCompatActivity {
         String displayName = !TextUtils.isEmpty(studentName) ? studentName
                 : (!TextUtils.isEmpty(username) ? username : "Student");
 
-        if (txtWelcome != null) txtWelcome.setText("Welcome");
-        if (txtStudentName != null) txtStudentName.setText(displayName);
+        if (txtWelcome != null)
+            txtWelcome.setText("Welcome");
+        if (txtStudentName != null)
+            txtStudentName.setText(displayName);
 
         // Defaults
-        if (txtOverlayAttendance != null) txtOverlayAttendance.setText("--%");
+        if (txtOverlayAttendance != null)
+            txtOverlayAttendance.setText("--%");
         if (txtOverlayCgpa != null) {
             double cgpa = prefs.getResultsCacheCgpa();
             txtOverlayCgpa.setText(cgpa > 0 ? String.format(Locale.US, "%.2f", cgpa) : "--");
@@ -128,7 +136,8 @@ public class StudentDashboardActivity extends AppCompatActivity {
         setLoading(true);
 
         final String todayName = new SimpleDateFormat("EEEE", Locale.US).format(new Date());
-        if (txtTimetableTitle != null) txtTimetableTitle.setText(todayName + " Timetable");
+        if (txtTimetableTitle != null)
+            txtTimetableTitle.setText(todayName + " Timetable");
 
         executor.execute(() -> {
             try {
@@ -166,8 +175,9 @@ public class StudentDashboardActivity extends AppCompatActivity {
 
                     if (todayItems != null) {
                         for (TimetableItem it : todayItems) {
-                            if (it == null) continue;
-                            //if ("Completed".equalsIgnoreCase(it.status)) continue;
+                            if (it == null)
+                                continue;
+                            // if ("Completed".equalsIgnoreCase(it.status)) continue;
 
                             // ✅ KEEP subject now (for better UI)
                             filtered.add(new TimetableItem(it.code, it.subject, it.time, it.status));
@@ -193,8 +203,10 @@ public class StudentDashboardActivity extends AppCompatActivity {
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     setLoading(false);
-                    if (txtOverlayAttendance != null) txtOverlayAttendance.setText("--%");
-                    if (txtOverlayCgpa != null) txtOverlayCgpa.setText("--");
+                    if (txtOverlayAttendance != null)
+                        txtOverlayAttendance.setText("--%");
+                    if (txtOverlayCgpa != null)
+                        txtOverlayCgpa.setText("--");
                     showTimetableEmpty("Timetable not available");
                     Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
@@ -205,7 +217,8 @@ public class StudentDashboardActivity extends AppCompatActivity {
     private void showTimetableEmpty(String msg) {
         recyclerViewTimetable.setVisibility(View.GONE);
         timetableEmptyCard.setVisibility(View.VISIBLE);
-        if (txtTimetableEmpty != null) txtTimetableEmpty.setText(msg);
+        if (txtTimetableEmpty != null)
+            txtTimetableEmpty.setText(msg);
     }
 
     private void showTimetableList(List<TimetableItem> items) {
@@ -215,7 +228,8 @@ public class StudentDashboardActivity extends AppCompatActivity {
     }
 
     private boolean isWeekend(String day) {
-        if (day == null) return false;
+        if (day == null)
+            return false;
         String d = day.trim().toLowerCase(Locale.US);
         return d.equals("saturday") || d.equals("sunday");
     }
@@ -236,5 +250,26 @@ public class StudentDashboardActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         executor.shutdownNow();
+    }
+
+    public void refreshData() {
+        loadDashboard();
+    }
+
+    private void showRefreshDialog() {
+        SessionRefreshDialog dialog = new SessionRefreshDialog();
+        dialog.setCallback(new SessionRefreshDialog.RefreshCallback() {
+            @Override
+            public void onRefreshSuccess() {
+                refreshData();
+                Toast.makeText(StudentDashboardActivity.this, "Data refreshed ✅", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onRefreshFailed(String error) {
+                Toast.makeText(StudentDashboardActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
+        dialog.show(getSupportFragmentManager(), "refresh_dialog");
     }
 }

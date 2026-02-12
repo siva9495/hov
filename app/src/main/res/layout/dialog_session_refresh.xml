@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="24dp"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="8dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:background="@drawable/bg_screen_gradient">
+
+            <!-- Title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Session Refresh"
+                android:textColor="#2D2D2D"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:fontFamily="@font/sf_pro"
+                android:gravity="center"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Message -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Enter captcha to refresh your session"
+                android:textColor="#6B6B6B"
+                android:textSize="14sp"
+                android:fontFamily="@font/sf_pro"
+                android:gravity="center"
+                android:layout_marginBottom="24dp" />
+
+            <!-- Captcha Image Container -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:layout_marginBottom="16dp">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:background="#FFFFFF">
+
+                    <ImageView
+                        android:id="@+id/ivCaptcha"
+                        android:layout_width="match_parent"
+                        android:layout_height="80dp"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="Captcha Image" />
+
+                    <ImageView
+                        android:id="@+id/ivRefreshCaptcha"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentTop="true"
+                        android:src="@drawable/ic_refresh"
+                        android:padding="6dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Refresh Captcha" />
+                </RelativeLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Captcha Input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxStrokeColor="#F5A300"
+                app:hintTextColor="#F5A300">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etCaptcha"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Enter Captcha"
+                    android:inputType="text"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/sf_pro"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCancel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="56dp"
+                    android:text="Cancel"
+                    android:textColor="#6B6B6B"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/sf_pro"
+                    android:textAllCaps="false"
+                    app:backgroundTint="#E0E0E0"
+                    app:cornerRadius="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRefresh"
+                    android:layout_width="wrap_content"
+                    android:layout_height="56dp"
+                    android:text="Refresh Data"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/sf_pro"
+                    android:textAllCaps="false"
+                    android:textStyle="bold"
+                    app:backgroundTint="#F5A300"
+                    app:cornerRadius="12dp"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Loading Overlay -->
+        <FrameLayout
+            android:id="@+id/progressOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#80FFFFFF"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ProgressBar
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:indeterminateTint="#F5A300" />
+        </FrameLayout>
+    </FrameLayout>
+</androidx.cardview.widget.CardView>

@@ -27,11 +27,25 @@
             android:fontFamily="@font/sf_pro"/>
 
         <ImageView
+            android:id="@+id/btnRefresh"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_refresh"
+            android:contentDescription="Refresh"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="3dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="12dp"/>
+
+        <ImageView
             android:id="@+id/btnSettings"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:src="@drawable/ic_settings"
             android:contentDescription="Settings"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="3dp"
             android:clickable="true"
             android:focusable="true"/>
     </LinearLayout>
