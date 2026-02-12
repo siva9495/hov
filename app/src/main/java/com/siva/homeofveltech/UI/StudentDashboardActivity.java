@@ -19,6 +19,7 @@ import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
 import com.siva.homeofveltech.UI.Attendance.SubjectAttendanceActivity;
+import com.siva.homeofveltech.UI.Login.LoginActivity;
 import com.siva.homeofveltech.UI.Result.StudentResultsActivity;
 import com.siva.homeofveltech.UI.TimeTable.FullTimeTableActivity;
 
@@ -126,23 +127,11 @@ public class StudentDashboardActivity extends AppCompatActivity {
     private void loadDashboard() {
         setLoading(true);
 
-        String username = prefs.getUsername();
-        String password = prefs.getPassword();
-
-        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password)) {
-            Toast.makeText(this, "Please login again", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
         final String todayName = new SimpleDateFormat("EEEE", Locale.US).format(new Date());
         if (txtTimetableTitle != null) txtTimetableTitle.setText(todayName + " Timetable");
 
         executor.execute(() -> {
             try {
-                boolean ok = amsClient.isSessionValid() || amsClient.login(username, password);
-                if (!ok) throw new Exception("Session expired. Login failed.");
-
                 StudentDashboardData data = amsClient.fetchStudentDashboardData();
 
                 runOnUiThread(() -> {
@@ -154,6 +143,15 @@ public class StudentDashboardActivity extends AppCompatActivity {
                             txtOverlayAttendance.setText(((int) Math.round(data.overallAttendancePercent)) + "%");
                         } else {
                             txtOverlayAttendance.setText("--%");
+                        }
+                    }
+
+                    // ✅ Result overlay
+                    if (txtOverlayCgpa != null) {
+                        if (data.overallGpa > 0) {
+                            txtOverlayCgpa.setText(String.format(Locale.US, "%.2f", data.overallGpa));
+                        } else {
+                            txtOverlayCgpa.setText("--");
                         }
                     }
 
@@ -183,10 +181,20 @@ public class StudentDashboardActivity extends AppCompatActivity {
                     }
                 });
 
+            } catch (AmsClient.SessionExpiredException e) {
+                runOnUiThread(() -> {
+                    setLoading(false);
+                    Toast.makeText(this, "Session expired, please log in again", Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(StudentDashboardActivity.this, LoginActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
+                });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     setLoading(false);
                     if (txtOverlayAttendance != null) txtOverlayAttendance.setText("--%");
+                    if (txtOverlayCgpa != null) txtOverlayCgpa.setText("--");
                     showTimetableEmpty("Timetable not available");
                     Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });

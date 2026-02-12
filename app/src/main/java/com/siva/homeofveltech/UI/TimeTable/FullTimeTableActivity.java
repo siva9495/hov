@@ -1,7 +1,7 @@
 package com.siva.homeofveltech.UI.TimeTable;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
 
@@ -16,6 +16,7 @@ import com.siva.homeofveltech.Model.TimetableItem;
 import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
+import com.siva.homeofveltech.UI.Login.LoginActivity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +34,6 @@ public class FullTimeTableActivity extends AppCompatActivity {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AmsClient amsClient = new AmsClient();
-    private PrefsManager prefs;
 
     private final List<String> DAYS = Arrays.asList(
             "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
@@ -44,7 +44,7 @@ public class FullTimeTableActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_full_time_table);
 
-        prefs = new PrefsManager(this);
+        new PrefsManager(this);
 
         shimmer = findViewById(R.id.shimmer_layout);
         content = findViewById(R.id.content_container);
@@ -62,20 +62,8 @@ public class FullTimeTableActivity extends AppCompatActivity {
     private void loadFullTimetable() {
         setLoading(true);
 
-        String username = prefs.getUsername();
-        String password = prefs.getPassword();
-
-        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password)) {
-            Toast.makeText(this, "Please login again", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
         executor.execute(() -> {
             try {
-                boolean ok = amsClient.isSessionValid() || amsClient.login(username, password);
-                if (!ok) throw new Exception("Session expired. Login failed.");
-
                 StudentDashboardData data = amsClient.fetchStudentDashboardData();
 
                 List<FullTimeTableAdapter.Row> rows = new ArrayList<>();
@@ -98,6 +86,15 @@ public class FullTimeTableActivity extends AppCompatActivity {
                     adapter.setRows(rows);
                 });
 
+            } catch (AmsClient.SessionExpiredException e) {
+                runOnUiThread(() -> {
+                    setLoading(false);
+                    Toast.makeText(this, "Session expired, please log in again", Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(this, LoginActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
+                });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     setLoading(false);

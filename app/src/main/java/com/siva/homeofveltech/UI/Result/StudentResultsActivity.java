@@ -1,5 +1,6 @@
 package com.siva.homeofveltech.UI.Result;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
@@ -13,7 +14,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,6 +32,7 @@ import com.siva.homeofveltech.Model.SemesterResult;
 import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
+import com.siva.homeofveltech.UI.Login.LoginActivity;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -137,9 +138,6 @@ public class StudentResultsActivity extends AppCompatActivity {
     private void loadRealResults() {
         executor.execute(() -> {
             try {
-                ensureLoggedIn();
-
-                // ✅ FIX: your AmsClient needs ResultType argument
                 List<SemesterResult> fresh =
                         amsClient.fetchAllSemesterResults(AmsClient.ResultType.REGULAR);
 
@@ -157,6 +155,14 @@ public class StudentResultsActivity extends AppCompatActivity {
                     setLoading(false);
                 });
 
+            } catch (AmsClient.SessionExpiredException e) {
+                mainHandler.post(() -> {
+                    Toast.makeText(this, "Session expired, please log in again", Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(this, LoginActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
+                });
             } catch (Exception e) {
                 mainHandler.post(() -> {
                     if (prefs.hasResultsCache()) {
@@ -169,17 +175,6 @@ public class StudentResultsActivity extends AppCompatActivity {
                 });
             }
         });
-    }
-
-    private void ensureLoggedIn() throws Exception {
-        // If session valid, ok
-        if (amsClient.isSessionValid()) return;
-
-        // Try re-login using saved credentials
-        if (!prefs.hasCredentials()) throw new Exception("No credentials saved");
-
-        boolean ok = amsClient.login(prefs.getUsername(), prefs.getPassword());
-        if (!ok) throw new Exception("Login failed");
     }
 
     private void setLoading(boolean loading) {

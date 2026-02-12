@@ -57,6 +57,7 @@
                 android:id="@+id/etUsername"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
+                android.autofillHints="username"
                 android:background="@drawable/bg_input_field"
                 android:hint="Enter Username"
                 android:textColor="@color/text_primary"
@@ -86,6 +87,7 @@
                     android:layout_height="50dp"
                     android:background="@drawable/bg_input_field"
                     android:hint="*******"
+                    android:autofillHints="password"
                     android:inputType="textPassword"
                     android:textColor="@color/text_primary"
                     android:paddingStart="16dp"
@@ -106,6 +108,44 @@
                     android:focusable="true"
                     android:contentDescription="Toggle Password Visibility"/>
             </RelativeLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:gravity="center">
+
+                <ImageView
+                    android:id="@+id/ivCaptcha"
+                    android:layout_width="150dp"
+                    android:layout_height="50dp"
+                    android:background="#eee"/>
+
+                <ImageView
+                    android:id="@+id/ivRefreshCaptcha"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="16dp"
+                    android:src="@drawable/ic_refresh"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Refresh Captcha"/>
+
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/etCaptcha"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="@drawable/bg_input_field"
+                android:hint="Enter Captcha"
+                android:textColor="@color/text_primary"
+                android:paddingHorizontal="16dp"
+                android:textSize="16sp"
+                android:fontFamily="@font/sf_pro"
+                android.autofillHints=""
+                android:singleLine="true"
+                android:layout_marginBottom="16dp"/>
+
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogin"

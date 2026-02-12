@@ -2,58 +2,39 @@ package com.siva.homeofveltech.services;
 
 import android.app.Service;
 import android.content.Intent;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import com.siva.homeofveltech.Network.AmsClient;
-import com.siva.homeofveltech.Storage.PrefsManager;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
+/**
+ * This service was originally designed to renew the AMS session in the background.
+ * With the introduction of a captcha on the login page, silent re-authentication is no longer possible.
+ * The session is now checked before each network request in the UI layer (Activities),
+ * and the user is redirected to the login screen if the session is expired.
+ * <p>
+ * This service is now deprecated and will stop itself immediately if started.
+ */
 public class SessionRenewalService extends Service {
 
     private static final String TAG = "SessionRenewalService";
-    private static final long RENEWAL_INTERVAL = 10 * 60 * 1000; // 10 minutes
-
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final Handler handler = new Handler(Looper.getMainLooper());
-
-    private PrefsManager prefsManager;
-    private AmsClient amsClient;
-
-    private final Runnable renewalRunnable = new Runnable() {
-        @Override
-        public void run() {
-            renewSession();
-            handler.postDelayed(this, RENEWAL_INTERVAL);
-        }
-    };
 
     @Override
     public void onCreate() {
         super.onCreate();
-        prefsManager = new PrefsManager(this);
-        amsClient = new AmsClient();
+        Log.d(TAG, "Service created. This service is deprecated and will be stopped.");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "Session Renewal Service started");
-        handler.removeCallbacks(renewalRunnable);
-        handler.post(renewalRunnable);
-        return START_STICKY;
+        Log.w(TAG, "SessionRenewalService is no longer functional due to captcha. Stopping service.");
+        stopSelf();
+        return START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        handler.removeCallbacks(renewalRunnable);
-        executor.shutdownNow();
         Log.d(TAG, "Session Renewal Service stopped");
     }
 
@@ -61,23 +42,5 @@ public class SessionRenewalService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
-    }
-
-    private void renewSession() {
-        if (!prefsManager.hasCredentials()) return;
-
-        executor.execute(() -> {
-            try {
-                String username = prefsManager.getUsername();
-                String password = prefsManager.getPassword();
-
-                boolean loggedIn = amsClient.login(username, password);
-                if (loggedIn) Log.d(TAG, "Session renewed successfully");
-                else Log.e(TAG, "Failed to renew session");
-
-            } catch (Exception e) {
-                Log.e(TAG, "Error renewing session", e);
-            }
-        });
     }
 }
