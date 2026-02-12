@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
+import java.util.Locale;
+
 public class PrefsManager {
 
     private static final String FILE = "home_of_veltech_secure";
@@ -192,5 +194,35 @@ public class PrefsManager {
     public boolean hasTimetableCache() {
         String j = getTimetableCache();
         return j != null && !j.trim().isEmpty();
+    }
+
+    // Full attendance cache by subject
+    public void saveSubjectFullAttendanceCache(String subjectCode, String subjectName, String periodsJson) {
+        String key = fullAttendanceKey(subjectCode, subjectName);
+        if (key.isEmpty()) return;
+        sp.edit().putString(key, periodsJson == null ? "" : periodsJson).apply();
+    }
+
+    public String getSubjectFullAttendanceCache(String subjectCode, String subjectName) {
+        String key = fullAttendanceKey(subjectCode, subjectName);
+        if (key.isEmpty()) return "";
+        return sp.getString(key, "");
+    }
+
+    public boolean hasSubjectFullAttendanceCache(String subjectCode, String subjectName) {
+        String json = getSubjectFullAttendanceCache(subjectCode, subjectName);
+        return json != null && !json.trim().isEmpty();
+    }
+
+    private String fullAttendanceKey(String subjectCode, String subjectName) {
+        String base = "";
+        if (subjectCode != null && !subjectCode.trim().isEmpty()) {
+            base = subjectCode.trim();
+        } else if (subjectName != null && !subjectName.trim().isEmpty()) {
+            base = subjectName.trim();
+        }
+        if (base.isEmpty()) return "";
+        String normalized = base.toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "_");
+        return "full_attendance_json_" + normalized;
     }
 }

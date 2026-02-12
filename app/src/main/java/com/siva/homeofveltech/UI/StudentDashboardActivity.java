@@ -14,17 +14,19 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.facebook.shimmer.ShimmerFrameLayout;
 import com.siva.homeofveltech.Adapter.TimetableAdapter;
+import com.siva.homeofveltech.Model.SemesterResult;
 import com.siva.homeofveltech.Model.StudentDashboardData;
+import com.siva.homeofveltech.Model.SubjectAttendanceItem;
 import com.siva.homeofveltech.Model.TimetableItem;
 import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
 import com.siva.homeofveltech.UI.Attendance.SubjectAttendanceActivity;
 import com.siva.homeofveltech.UI.Dialog.SessionRefreshDialog;
-import com.siva.homeofveltech.UI.Login.LoginActivity;
 import com.siva.homeofveltech.UI.Result.StudentResultsActivity;
 import com.siva.homeofveltech.UI.TimeTable.FullTimeTableActivity;
 
+import com.google.gson.Gson;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class StudentDashboardActivity extends AppCompatActivity {
+    private static final long MIN_SHIMMER_MS = 400L;
 
     // Header
     private TextView txtWelcome;
@@ -55,6 +58,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
     // Loading
     private ShimmerFrameLayout shimmerLayout;
     private View contentContainer;
+    private long loadingStartMs = 0L;
 
     // Background
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -129,12 +133,41 @@ public class StudentDashboardActivity extends AppCompatActivity {
             txtOverlayCgpa.setText(cgpa > 0 ? String.format(Locale.US, "%.2f", cgpa) : "--");
         }
 
-        loadDashboard();
+        loadDashboard(false); // false = not a manual refresh
     }
 
-    private void loadDashboard() {
-        setLoading(true);
+    private void loadDashboard(boolean manualRefresh) {
+        // If manual refresh, fetch from server
+        if (manualRefresh) {
+            fetchFromServer(!prefs.hasDashboardCache());
+            return;
+        }
 
+        // Otherwise, show cached data instantly (no shimmer!)
+        if (prefs.hasDashboardCache()) {
+            loadFromCache();
+        } else {
+            // No cache, must fetch (first login)
+            fetchFromServer(true);
+        }
+    }
+
+    private void loadFromCache() {
+        try {
+            String json = prefs.getDashboardCache();
+            Gson gson = new Gson();
+            StudentDashboardData data = gson.fromJson(json, StudentDashboardData.class);
+            if (data == null) throw new IllegalStateException("Empty dashboard cache");
+            updateUI(data);
+            setLoading(false);
+        } catch (Exception e) {
+            // Cache corrupted, fetch fresh
+            fetchFromServer(true);
+        }
+    }
+
+    private void fetchFromServer(boolean showBlockingLoader) {
+        if (showBlockingLoader) setLoading(true);
         final String todayName = new SimpleDateFormat("EEEE", Locale.US).format(new Date());
         if (txtTimetableTitle != null)
             txtTimetableTitle.setText(todayName + " Timetable");
@@ -143,75 +176,112 @@ public class StudentDashboardActivity extends AppCompatActivity {
             try {
                 StudentDashboardData data = amsClient.fetchStudentDashboardData();
 
+                // Save to cache
+                Gson gson = new Gson();
+                String json = gson.toJson(data);
+                prefs.saveDashboardCache(json);
+                prefs.saveTimetableCache(gson.toJson(data.weekTimetable));
+                prefs.saveStudentProfile(data.studentName, data.branch);
+                refreshSecondaryCaches(gson);
+
                 runOnUiThread(() -> {
-                    setLoading(false);
-
-                    // Attendance overlay
-                    if (txtOverlayAttendance != null) {
-                        if (data.overallAttendancePercent >= 0) {
-                            txtOverlayAttendance.setText(((int) Math.round(data.overallAttendancePercent)) + "%");
-                        } else {
-                            txtOverlayAttendance.setText("--%");
-                        }
-                    }
-
-                    // ✅ Result overlay
-                    if (txtOverlayCgpa != null) {
-                        if (data.overallGpa > 0) {
-                            txtOverlayCgpa.setText(String.format(Locale.US, "%.2f", data.overallGpa));
-                        } else {
-                            txtOverlayCgpa.setText("--");
-                        }
-                    }
-
-                    // Weekend handling (show empty-state nicely)
-                    if (isWeekend(todayName)) {
-                        showTimetableEmpty("No classes (Weekend)");
-                        return;
-                    }
-
-                    List<TimetableItem> todayItems = data.getTimetableForDay(todayName);
-                    List<TimetableItem> filtered = new ArrayList<>();
-
-                    if (todayItems != null) {
-                        for (TimetableItem it : todayItems) {
-                            if (it == null)
-                                continue;
-                            // if ("Completed".equalsIgnoreCase(it.status)) continue;
-
-                            // ✅ KEEP subject now (for better UI)
-                            filtered.add(new TimetableItem(it.code, it.subject, it.time, it.status));
-                        }
-                    }
-
-                    if (filtered.isEmpty()) {
-                        showTimetableEmpty("No classes today");
-                    } else {
-                        showTimetableList(filtered);
-                    }
+                    updateUI(data);
+                    if (showBlockingLoader) setLoading(false);
                 });
-
             } catch (AmsClient.SessionExpiredException e) {
                 runOnUiThread(() -> {
-                    setLoading(false);
-                    Toast.makeText(this, "Session expired, please log in again", Toast.LENGTH_LONG).show();
-                    Intent intent = new Intent(StudentDashboardActivity.this, LoginActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    finish();
+                    if (showBlockingLoader) setLoading(false);
+                    if (prefs.hasDashboardCache()) {
+                        loadFromCache();
+                        Toast.makeText(this, "Showing saved dashboard (session expired)", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Session expired. Refresh session to get latest data.", Toast.LENGTH_LONG).show();
+                    }
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    setLoading(false);
-                    if (txtOverlayAttendance != null)
-                        txtOverlayAttendance.setText("--%");
-                    if (txtOverlayCgpa != null)
-                        txtOverlayCgpa.setText("--");
-                    showTimetableEmpty("Timetable not available");
-                    Toast.makeText(this, "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    if (showBlockingLoader) setLoading(false);
+                    if (prefs.hasDashboardCache()) {
+                        loadFromCache();
+                        Toast.makeText(this, "Showing saved dashboard (refresh failed)", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Error loading dashboard: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
         });
+    }
+
+    private void refreshSecondaryCaches(Gson gson) {
+        try {
+            List<SubjectAttendanceItem> attendance = amsClient.fetchAttendanceData();
+            prefs.saveAttendanceCache(gson.toJson(attendance));
+        } catch (Exception ignored) {
+        }
+
+        try {
+            List<SemesterResult> results = amsClient.fetchAllSemesterResultsRegular();
+            double cgpa = 0.0;
+            if (results != null && !results.isEmpty()) {
+                cgpa = results.get(results.size() - 1).tgpa;
+            }
+            prefs.saveResultsCache(gson.toJson(results), cgpa);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void updateUI(StudentDashboardData data) {
+        final String todayName = new SimpleDateFormat("EEEE", Locale.US).format(new Date());
+        if (txtTimetableTitle != null)
+            txtTimetableTitle.setText(todayName + " Timetable");
+
+        // Attendance overlay
+        if (txtOverlayAttendance != null) {
+            if (data.overallAttendancePercent >= 0) {
+                txtOverlayAttendance.setText(((int) Math.round(data.overallAttendancePercent)) + "%");
+            } else {
+                txtOverlayAttendance.setText("--%");
+            }
+        }
+
+        // ✅ Result overlay
+        if (txtOverlayCgpa != null) {
+            if (data.overallGpa > 0) {
+                txtOverlayCgpa.setText(String.format(Locale.US, "%.2f", data.overallGpa));
+            } else {
+                txtOverlayCgpa.setText("--");
+            }
+        }
+
+        // Weekend handling (show empty-state nicely)
+        if (isWeekend(todayName)) {
+            showTimetableEmpty("No classes (Weekend)");
+            return;
+        }
+
+        List<TimetableItem> todayItems = data.getTimetableForDay(todayName);
+        List<TimetableItem> filtered = new ArrayList<>();
+
+        if (todayItems != null) {
+            for (TimetableItem it : todayItems) {
+                if (it == null)
+                    continue;
+                // if ("Completed".equalsIgnoreCase(it.status)) continue;
+                filtered.add(it);
+            }
+        }
+
+        if (filtered.isEmpty()) {
+            showTimetableEmpty("No classes today");
+        } else {
+            showTimetableItems(filtered);
+        }
+    }
+
+    private void showTimetableItems(List<TimetableItem> items) {
+        recyclerViewTimetable.setVisibility(View.VISIBLE);
+        timetableEmptyCard.setVisibility(View.GONE);
+        adapter.setItems(items);
     }
 
     private void showTimetableEmpty(String msg) {
@@ -219,12 +289,6 @@ public class StudentDashboardActivity extends AppCompatActivity {
         timetableEmptyCard.setVisibility(View.VISIBLE);
         if (txtTimetableEmpty != null)
             txtTimetableEmpty.setText(msg);
-    }
-
-    private void showTimetableList(List<TimetableItem> items) {
-        timetableEmptyCard.setVisibility(View.GONE);
-        recyclerViewTimetable.setVisibility(View.VISIBLE);
-        adapter.setItems(items);
     }
 
     private boolean isWeekend(String day) {
@@ -236,13 +300,18 @@ public class StudentDashboardActivity extends AppCompatActivity {
 
     private void setLoading(boolean loading) {
         if (loading) {
+            loadingStartMs = System.currentTimeMillis();
             shimmerLayout.startShimmer();
             shimmerLayout.setVisibility(View.VISIBLE);
             contentContainer.setVisibility(View.GONE);
         } else {
-            shimmerLayout.stopShimmer();
-            shimmerLayout.setVisibility(View.GONE);
-            contentContainer.setVisibility(View.VISIBLE);
+            long elapsed = System.currentTimeMillis() - loadingStartMs;
+            long delay = Math.max(0L, MIN_SHIMMER_MS - elapsed);
+            shimmerLayout.postDelayed(() -> {
+                shimmerLayout.stopShimmer();
+                shimmerLayout.setVisibility(View.GONE);
+                contentContainer.setVisibility(View.VISIBLE);
+            }, delay);
         }
     }
 
@@ -253,7 +322,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
     }
 
     public void refreshData() {
-        loadDashboard();
+        fetchFromServer(!prefs.hasDashboardCache());
     }
 
     private void showRefreshDialog() {

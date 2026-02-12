@@ -1,6 +1,5 @@
 package com.siva.homeofveltech.UI.Result;
 
-import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
@@ -32,7 +31,6 @@ import com.siva.homeofveltech.Model.SemesterResult;
 import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
-import com.siva.homeofveltech.UI.Login.LoginActivity;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -42,6 +40,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class StudentResultsActivity extends AppCompatActivity {
+    private static final long MIN_SHIMMER_MS = 400L;
 
     private ShimmerFrameLayout shimmerLayout;
     private View contentContainer;
@@ -56,6 +55,7 @@ public class StudentResultsActivity extends AppCompatActivity {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private long loadingStartMs = 0L;
 
     private final Gson gson = new Gson();
     private final Type listType = new TypeToken<List<SemesterResult>>(){}.getType();
@@ -94,7 +94,7 @@ public class StudentResultsActivity extends AppCompatActivity {
         if (!showedCache) setLoading(true);
 
         // ✅ 3) Load fresh results
-        loadRealResults();
+        loadRealResults(showedCache);
     }
 
     @Override
@@ -135,7 +135,7 @@ public class StudentResultsActivity extends AppCompatActivity {
         }
     }
 
-    private void loadRealResults() {
+    private void loadRealResults(boolean hasVisibleCache) {
         executor.execute(() -> {
             try {
                 List<SemesterResult> fresh =
@@ -152,22 +152,20 @@ public class StudentResultsActivity extends AppCompatActivity {
                 mainHandler.post(() -> {
                     semesterAdapter.setItems(finalFresh);
                     txtOverallCgpa.setText(String.format(Locale.US, "%.2f", overall));
-                    setLoading(false);
+                    if (!hasVisibleCache) setLoading(false);
                 });
 
             } catch (AmsClient.SessionExpiredException e) {
                 mainHandler.post(() -> {
-                    Toast.makeText(this, "Session expired, please log in again", Toast.LENGTH_LONG).show();
-                    Intent intent = new Intent(this, LoginActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    finish();
+                    if (!hasVisibleCache) {
+                        setLoading(false);
+                        Toast.makeText(this, "Session expired. Refresh session from dashboard to update results.", Toast.LENGTH_LONG).show();
+                    }
                 });
             } catch (Exception e) {
                 mainHandler.post(() -> {
                     if (prefs.hasResultsCache()) {
-                        Toast.makeText(this, "Showing saved results (refresh failed)", Toast.LENGTH_SHORT).show();
-                        setLoading(false);
+                        if (!hasVisibleCache) setLoading(false);
                     } else {
                         setLoading(false);
                         Toast.makeText(this, "Failed to load results", Toast.LENGTH_SHORT).show();
@@ -179,13 +177,18 @@ public class StudentResultsActivity extends AppCompatActivity {
 
     private void setLoading(boolean loading) {
         if (loading) {
+            loadingStartMs = System.currentTimeMillis();
             shimmerLayout.startShimmer();
             shimmerLayout.setVisibility(View.VISIBLE);
             contentContainer.setVisibility(View.GONE);
         } else {
-            shimmerLayout.stopShimmer();
-            shimmerLayout.setVisibility(View.GONE);
-            contentContainer.setVisibility(View.VISIBLE);
+            long elapsed = System.currentTimeMillis() - loadingStartMs;
+            long delay = Math.max(0L, MIN_SHIMMER_MS - elapsed);
+            shimmerLayout.postDelayed(() -> {
+                shimmerLayout.stopShimmer();
+                shimmerLayout.setVisibility(View.GONE);
+                contentContainer.setVisibility(View.VISIBLE);
+            }, delay);
         }
     }
 

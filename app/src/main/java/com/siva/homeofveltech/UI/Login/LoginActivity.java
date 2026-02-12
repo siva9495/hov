@@ -15,11 +15,16 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.siva.homeofveltech.Model.StudentProfile;
+import com.siva.homeofveltech.Model.StudentDashboardData;
+import com.siva.homeofveltech.Model.SubjectAttendanceItem;
+import com.siva.homeofveltech.Model.SemesterResult;
 import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
 import com.siva.homeofveltech.UI.Dashboard.DashboardActivity;
 
+import com.google.gson.Gson;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,10 +53,10 @@ public class LoginActivity extends AppCompatActivity {
         etUsername = findViewById(R.id.etUsername);
         etPassword = findViewById(R.id.etPassword);
         etCaptcha = findViewById(R.id.etCaptcha);
-        ivEyeIcon  = findViewById(R.id.ivEyeIcon);
+        ivEyeIcon = findViewById(R.id.ivEyeIcon);
         ivCaptcha = findViewById(R.id.ivCaptcha);
         ivRefreshCaptcha = findViewById(R.id.ivRefreshCaptcha);
-        btnLogin   = findViewById(R.id.btnLogin);
+        btnLogin = findViewById(R.id.btnLogin);
 
         if (prefs.hasCredentials()) {
             etUsername.setText(prefs.getUsername());
@@ -68,9 +73,21 @@ public class LoginActivity extends AppCompatActivity {
             String password = etPassword.getText() == null ? "" : etPassword.getText().toString().trim();
             String captcha = etCaptcha.getText() == null ? "" : etCaptcha.getText().toString().trim();
 
-            if (username.isEmpty()) { etUsername.setError("Enter Username"); etUsername.requestFocus(); return; }
-            if (password.isEmpty()) { etPassword.setError("Enter Password"); etPassword.requestFocus(); return; }
-            if (captcha.isEmpty()) { etCaptcha.setError("Enter Captcha"); etCaptcha.requestFocus(); return; }
+            if (username.isEmpty()) {
+                etUsername.setError("Enter Username");
+                etUsername.requestFocus();
+                return;
+            }
+            if (password.isEmpty()) {
+                etPassword.setError("Enter Password");
+                etPassword.requestFocus();
+                return;
+            }
+            if (captcha.isEmpty()) {
+                etCaptcha.setError("Enter Captcha");
+                etCaptcha.requestFocus();
+                return;
+            }
 
             setLoading(true);
 
@@ -80,7 +97,10 @@ public class LoginActivity extends AppCompatActivity {
 
                     StudentProfile profile = new StudentProfile("", "");
                     if (ok) {
-                        try { profile = amsClient.fetchStudentProfile(); } catch (Exception ignored) {}
+                        try {
+                            profile = amsClient.fetchStudentProfile();
+                        } catch (Exception ignored) {
+                        }
                     }
 
                     StudentProfile finalProfile = profile;
@@ -91,6 +111,9 @@ public class LoginActivity extends AppCompatActivity {
                         if (ok) {
                             prefs.saveCredentials(username, password);
                             prefs.saveStudentProfile(finalProfile.studentName, finalProfile.branch);
+
+                            // Fetch and cache ALL data on first login
+                            fetchAndCacheAllData();
 
                             Toast.makeText(this, "Login Success ✅", Toast.LENGTH_SHORT).show();
 
@@ -126,7 +149,8 @@ public class LoginActivity extends AppCompatActivity {
                 AmsClient.LoginPageData pageData = amsClient.fetchLoginPage();
                 hiddenFields = pageData.hiddenFields;
                 runOnUiThread(() -> {
-                    ivCaptcha.setImageBitmap(BitmapFactory.decodeByteArray(pageData.captchaImage, 0, pageData.captchaImage.length));
+                    ivCaptcha.setImageBitmap(
+                            BitmapFactory.decodeByteArray(pageData.captchaImage, 0, pageData.captchaImage.length));
                     etCaptcha.setText("");
                     setLoading(false);
                 });
@@ -150,7 +174,8 @@ public class LoginActivity extends AppCompatActivity {
             ivEyeIcon.setImageResource(R.drawable.ic_eye_closed);
         }
 
-        if (etPassword.getText() != null) etPassword.setSelection(etPassword.getText().length());
+        if (etPassword.getText() != null)
+            etPassword.setSelection(etPassword.getText().length());
     }
 
     private void setLoading(boolean loading) {
@@ -168,15 +193,63 @@ public class LoginActivity extends AppCompatActivity {
     private void hideKeyboard() {
         try {
             View v = getCurrentFocus();
-            if (v == null) return;
+            if (v == null)
+                return;
             InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            if (imm != null) imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-        } catch (Exception ignored) {}
+            if (imm != null)
+                imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         executor.shutdownNow();
+    }
+
+    /**
+     * Fetch all user data and cache it for instant loading
+     * Runs in background, doesn't block login flow
+     */
+    private void fetchAndCacheAllData() {
+        ExecutorService prefetchExecutor = Executors.newSingleThreadExecutor();
+        prefetchExecutor.execute(() -> {
+            Gson gson = new Gson();
+            try {
+                // Fetch dashboard data
+                StudentDashboardData dashboardData = amsClient.fetchStudentDashboardData();
+                String dashboardJson = gson.toJson(dashboardData);
+                prefs.saveDashboardCache(dashboardJson);
+                prefs.saveTimetableCache(gson.toJson(dashboardData.weekTimetable));
+                prefs.saveStudentProfile(dashboardData.studentName, dashboardData.branch);
+            } catch (Exception ignored) {
+                // keep going to cache whatever else is available
+            }
+
+            try {
+                // Fetch attendance data
+                List<SubjectAttendanceItem> attendanceData = amsClient.fetchAttendanceData();
+                String attendanceJson = gson.toJson(attendanceData);
+                prefs.saveAttendanceCache(attendanceJson);
+            } catch (Exception ignored) {
+                // keep going
+            }
+
+            try {
+                // Fetch results data
+                List<SemesterResult> resultsData = amsClient.fetchAllSemesterResultsRegular();
+                double cgpa = 0.0;
+                if (!resultsData.isEmpty() && resultsData.get(resultsData.size() - 1).tgpa > 0) {
+                    cgpa = resultsData.get(resultsData.size() - 1).tgpa;
+                }
+                String resultsJson = gson.toJson(resultsData);
+                prefs.saveResultsCache(resultsJson, cgpa);
+            } catch (Exception ignored) {
+                // keep going
+            } finally {
+                prefetchExecutor.shutdown();
+            }
+        });
     }
 }

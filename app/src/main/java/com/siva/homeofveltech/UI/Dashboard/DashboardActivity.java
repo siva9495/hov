@@ -34,6 +34,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     // UI Elements
     private TextView txtGreeting;
+    private TextView txtStudentName;
     private View cardAttendance;
     private View contentContainer;
     private ShimmerFrameLayout shimmerLayout;
@@ -66,6 +67,7 @@ public class DashboardActivity extends AppCompatActivity {
 
         // Find and assign all UI elements from the layout
         txtGreeting = findViewById(R.id.tvGreeting);
+        txtStudentName = findViewById(R.id.tvStudentName);
         cardAttendance = findViewById(R.id.cardAcademic);
         contentContainer = findViewById(R.id.contentContainer);
         shimmerLayout = findViewById(R.id.shimmerLayout);
@@ -75,15 +77,16 @@ public class DashboardActivity extends AppCompatActivity {
         // Start with the shimmer animation
         setLoading(true);
 
-        // Set a personalized greeting message
+        // Set a simple greeting message
+        if (txtGreeting != null)
+            txtGreeting.setText("Welcome");
         String studentName = prefs.getStudentName();
         String username = prefs.getUsername();
         String displayName = !TextUtils.isEmpty(studentName)
                 ? studentName
-                : (!TextUtils.isEmpty(username) ? username : "User");
-
-        if (txtGreeting != null)
-            txtGreeting.setText(displayName + " 👋");
+                : (!TextUtils.isEmpty(username) ? username : "Student");
+        if (txtStudentName != null)
+            txtStudentName.setText(displayName);
 
         // Set up the click listener for the academic details card
         if (cardAttendance != null) {
@@ -105,7 +108,7 @@ public class DashboardActivity extends AppCompatActivity {
         // Simulate a delay for data loading before showing the main content
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             setLoading(false);
-        }, 2000);
+        }, 400);
     }
 
     /**

@@ -34,7 +34,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Enter captcha to refresh your session"
+                android:text="Enter captcha to refresh your session and get updated data"
                 android:textColor="#6B6B6B"
                 android:textSize="14sp"
                 android:fontFamily="@font/sf_pro"
