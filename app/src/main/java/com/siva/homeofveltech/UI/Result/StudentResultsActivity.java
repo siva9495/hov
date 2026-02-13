@@ -93,8 +93,10 @@ public class StudentResultsActivity extends AppCompatActivity {
         // ✅ 2) If no cache -> shimmer, else keep content visible and refresh silently
         if (!showedCache) setLoading(true);
 
-        // ✅ 3) Load fresh results
-        loadRealResults(showedCache);
+        // ✅ 3) Load fresh results only when cache not available
+        if (!showedCache) {
+            loadRealResults(false);
+        }
     }
 
     @Override
@@ -159,7 +161,7 @@ public class StudentResultsActivity extends AppCompatActivity {
                 mainHandler.post(() -> {
                     if (!hasVisibleCache) {
                         setLoading(false);
-                        Toast.makeText(this, "Session expired. Refresh session from dashboard to update results.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "No saved results available.", Toast.LENGTH_SHORT).show();
                     }
                 });
             } catch (Exception e) {
@@ -168,7 +170,7 @@ public class StudentResultsActivity extends AppCompatActivity {
                         if (!hasVisibleCache) setLoading(false);
                     } else {
                         setLoading(false);
-                        Toast.makeText(this, "Failed to load results", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "No saved results available.", Toast.LENGTH_SHORT).show();
                     }
                 });
             }

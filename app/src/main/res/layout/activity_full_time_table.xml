@@ -1,64 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@drawable/bg_screen_gradient">
 
-    <com.facebook.shimmer.ShimmerFrameLayout
-        android:id="@+id/shimmer_layout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="60dp"
-        app:shimmer_auto_start="true">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <include layout="@layout/shimmer_student_dashboard" />
-        </LinearLayout>
-    </com.facebook.shimmer.ShimmerFrameLayout>
-
     <LinearLayout
-        android:id="@+id/content_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:layout_marginTop="36dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-        <!-- Top bar -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <ImageView
+            android:id="@+id/btn_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_icon_circle"
+            android:padding="10dp"
+            android:src="@drawable/ic_back"
+            android:contentDescription="Back"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="36dp"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:text="Full Timetable"
+            android:textStyle="bold"
+            android:textColor="#2D2D2D"
+            android:textSize="20sp"
+            android:fontFamily="@font/sf_pro" />
+    </LinearLayout>
 
-            <ImageView
-                android:id="@+id/btn_back"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_circle"
-                android:padding="10dp"
-                android:src="@drawable/ic_back"
-                android:contentDescription="Back"
-                android:clickable="true"
-                android:focusable="true"/>
+    <TextView
+        android:id="@+id/txt_selected_day"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:text="Today"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#4A4A4A"
+        android:fontFamily="@font/sf_pro" />
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:text="Full Timetable"
-                android:textStyle="bold"
-                android:textColor="#2D2D2D"
-                android:textSize="20sp"
-                android:fontFamily="@font/sf_pro"/>
-        </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_day_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:clipToPadding="false"
+        android:overScrollMode="never" />
+
+    <FrameLayout
+        android:id="@+id/content_frame"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="10dp">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerFullTimetable"
@@ -66,8 +75,32 @@
             android:layout_height="match_parent"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
-            android:paddingTop="14dp"
-            android:clipToPadding="false"/>
-    </LinearLayout>
+            android:paddingTop="8dp"
+            android:paddingBottom="14dp"
+            android:clipToPadding="false" />
 
-</FrameLayout>
+        <TextView
+            android:id="@+id/txt_empty_day"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            android:text="No classes for this day"
+            android:textColor="#6B7280"
+            android:textSize="15sp"
+            android:fontFamily="@font/sf_pro"
+            android:padding="20dp" />
+
+        <com.facebook.shimmer.ShimmerFrameLayout
+            android:id="@+id/shimmer_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            app:shimmer_auto_start="true">
+
+            <include layout="@layout/shimmer_full_timetable_list" />
+
+        </com.facebook.shimmer.ShimmerFrameLayout>
+    </FrameLayout>
+
+</LinearLayout>

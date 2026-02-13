@@ -18,6 +18,7 @@ import com.siva.homeofveltech.Model.StudentProfile;
 import com.siva.homeofveltech.Model.StudentDashboardData;
 import com.siva.homeofveltech.Model.SubjectAttendanceItem;
 import com.siva.homeofveltech.Model.SemesterResult;
+import com.siva.homeofveltech.Model.PeriodAttendanceItem;
 import com.siva.homeofveltech.Network.AmsClient;
 import com.siva.homeofveltech.R;
 import com.siva.homeofveltech.Storage.PrefsManager;
@@ -106,16 +107,12 @@ public class LoginActivity extends AppCompatActivity {
                     StudentProfile finalProfile = profile;
 
                     runOnUiThread(() -> {
-                        setLoading(false);
-
                         if (ok) {
                             prefs.saveCredentials(username, password);
                             prefs.saveStudentProfile(finalProfile.studentName, finalProfile.branch);
-
-                            // Fetch and cache ALL data on first login
-                            fetchAndCacheAllData();
-
-                            Toast.makeText(this, "Login Success ✅", Toast.LENGTH_SHORT).show();
+                            setLoading(false);
+                            startBackgroundPrefetch();
+                            Toast.makeText(this, "Login Success \u2705", Toast.LENGTH_SHORT).show();
 
                             Intent i = new Intent(this, DashboardActivity.class);
                             i.putExtra("username", username);
@@ -124,6 +121,7 @@ public class LoginActivity extends AppCompatActivity {
                             startActivity(i);
                             finish();
                         } else {
+                            setLoading(false);
                             Toast.makeText(this, "Invalid Credentials or Captcha", Toast.LENGTH_LONG).show();
                             fetchCaptcha(); // Refresh captcha on failure
                         }
@@ -210,46 +208,67 @@ public class LoginActivity extends AppCompatActivity {
 
     /**
      * Fetch all user data and cache it for instant loading
-     * Runs in background, doesn't block login flow
+     * Runs in detached background thread and does not block navigation
      */
+    private void startBackgroundPrefetch() {
+        Thread t = new Thread(this::fetchAndCacheAllData, "login-prefetch-thread");
+        t.setDaemon(true);
+        t.start();
+    }
+
     private void fetchAndCacheAllData() {
-        ExecutorService prefetchExecutor = Executors.newSingleThreadExecutor();
-        prefetchExecutor.execute(() -> {
-            Gson gson = new Gson();
-            try {
-                // Fetch dashboard data
-                StudentDashboardData dashboardData = amsClient.fetchStudentDashboardData();
-                String dashboardJson = gson.toJson(dashboardData);
-                prefs.saveDashboardCache(dashboardJson);
-                prefs.saveTimetableCache(gson.toJson(dashboardData.weekTimetable));
-                prefs.saveStudentProfile(dashboardData.studentName, dashboardData.branch);
-            } catch (Exception ignored) {
-                // keep going to cache whatever else is available
-            }
+        Gson gson = new Gson();
+        try {
+            // Fetch dashboard data
+            StudentDashboardData dashboardData = amsClient.fetchStudentDashboardData();
+            String dashboardJson = gson.toJson(dashboardData);
+            prefs.saveDashboardCache(dashboardJson);
+            prefs.saveTimetableCache(gson.toJson(dashboardData.weekTimetable));
+            prefs.saveStudentProfile(dashboardData.studentName, dashboardData.branch);
+        } catch (Exception ignored) {
+            // keep going to cache whatever else is available
+        }
 
-            try {
-                // Fetch attendance data
-                List<SubjectAttendanceItem> attendanceData = amsClient.fetchAttendanceData();
-                String attendanceJson = gson.toJson(attendanceData);
-                prefs.saveAttendanceCache(attendanceJson);
-            } catch (Exception ignored) {
-                // keep going
-            }
+        try {
+            // Fetch attendance data
+            List<SubjectAttendanceItem> attendanceData = amsClient.fetchAttendanceData();
+            String attendanceJson = gson.toJson(attendanceData);
+            prefs.saveAttendanceCache(attendanceJson);
 
-            try {
-                // Fetch results data
-                List<SemesterResult> resultsData = amsClient.fetchAllSemesterResultsRegular();
-                double cgpa = 0.0;
-                if (!resultsData.isEmpty() && resultsData.get(resultsData.size() - 1).tgpa > 0) {
-                    cgpa = resultsData.get(resultsData.size() - 1).tgpa;
+            // Fetch full attendance for all subjects and cache by subject
+            if (attendanceData != null) {
+                for (SubjectAttendanceItem subject : attendanceData) {
+                    if (subject == null) continue;
+                    try {
+                        List<PeriodAttendanceItem> periods = amsClient.fetchSubjectFullAttendance(
+                                subject.subjectCode,
+                                subject.subjectName
+                        );
+                        prefs.saveSubjectFullAttendanceCache(
+                                subject.subjectCode,
+                                subject.subjectName,
+                                gson.toJson(periods)
+                        );
+                    } catch (Exception ignored) {
+                        // continue with other subjects
+                    }
                 }
-                String resultsJson = gson.toJson(resultsData);
-                prefs.saveResultsCache(resultsJson, cgpa);
-            } catch (Exception ignored) {
-                // keep going
-            } finally {
-                prefetchExecutor.shutdown();
             }
-        });
+        } catch (Exception ignored) {
+            // keep going
+        }
+
+        try {
+            // Fetch results data
+            List<SemesterResult> resultsData = amsClient.fetchAllSemesterResultsRegular();
+            double cgpa = 0.0;
+            if (!resultsData.isEmpty() && resultsData.get(resultsData.size() - 1).tgpa > 0) {
+                cgpa = resultsData.get(resultsData.size() - 1).tgpa;
+            }
+            String resultsJson = gson.toJson(resultsData);
+            prefs.saveResultsCache(resultsJson, cgpa);
+        } catch (Exception ignored) {
+            // keep going
+        }
     }
 }

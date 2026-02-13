@@ -6,7 +6,6 @@ import android.os.Looper;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -73,8 +72,10 @@ public class SubjectFullAttendanceActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
 
         boolean showedCache = tryShowCachedFullAttendance();
-        if (!showedCache) setLoading(true);
-        fetchSubjectAttendance(showedCache);
+        if (!showedCache) {
+            setLoading(true);
+            fetchSubjectAttendance(false);
+        }
 
         btnBack.setOnClickListener(v -> onBackPressed());
     }
@@ -114,16 +115,14 @@ public class SubjectFullAttendanceActivity extends AppCompatActivity {
                 handler.post(() -> {
                     if (!hasVisibleCache) setLoading(false);
                     if (!tryShowCachedFullAttendance()) {
-                        showEmpty("Session expired. Refresh session and try again.");
+                        showEmpty("No saved attendance data available for this subject.");
                     }
                 });
             } catch (Exception e) {
                 handler.post(() -> {
                     if (!hasVisibleCache) setLoading(false);
                     if (!tryShowCachedFullAttendance()) {
-                        Toast.makeText(this, "Failed to load attendance: " + e.getMessage(),
-                                Toast.LENGTH_LONG).show();
-                        showEmpty("Failed to load attendance data. Please try again.");
+                        showEmpty("No saved attendance data available for this subject.");
                     }
                 });
             }

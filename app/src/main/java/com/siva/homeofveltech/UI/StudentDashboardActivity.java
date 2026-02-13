@@ -2,6 +2,8 @@ package com.siva.homeofveltech.UI;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.ImageView;
@@ -14,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.facebook.shimmer.ShimmerFrameLayout;
 import com.siva.homeofveltech.Adapter.TimetableAdapter;
+import com.siva.homeofveltech.Model.PeriodAttendanceItem;
 import com.siva.homeofveltech.Model.SemesterResult;
 import com.siva.homeofveltech.Model.StudentDashboardData;
 import com.siva.homeofveltech.Model.SubjectAttendanceItem;
@@ -25,10 +28,12 @@ import com.siva.homeofveltech.UI.Attendance.SubjectAttendanceActivity;
 import com.siva.homeofveltech.UI.Dialog.SessionRefreshDialog;
 import com.siva.homeofveltech.UI.Result.StudentResultsActivity;
 import com.siva.homeofveltech.UI.TimeTable.FullTimeTableActivity;
+import com.siva.homeofveltech.Utils.TimetableStatusUtils;
 
 import com.google.gson.Gson;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -64,6 +69,17 @@ public class StudentDashboardActivity extends AppCompatActivity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AmsClient amsClient = new AmsClient();
     private PrefsManager prefs;
+    private StudentDashboardData currentDashboardData;
+    private final Handler statusHandler = new Handler(Looper.getMainLooper());
+    private final Runnable statusTick = new Runnable() {
+        @Override
+        public void run() {
+            if (currentDashboardData != null) {
+                updateUI(currentDashboardData);
+            }
+            statusHandler.postDelayed(this, 30_000L);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -182,7 +198,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
                 prefs.saveDashboardCache(json);
                 prefs.saveTimetableCache(gson.toJson(data.weekTimetable));
                 prefs.saveStudentProfile(data.studentName, data.branch);
-                refreshSecondaryCaches(gson);
+                executor.execute(() -> refreshSecondaryCaches(gson));
 
                 runOnUiThread(() -> {
                     updateUI(data);
@@ -193,9 +209,8 @@ public class StudentDashboardActivity extends AppCompatActivity {
                     if (showBlockingLoader) setLoading(false);
                     if (prefs.hasDashboardCache()) {
                         loadFromCache();
-                        Toast.makeText(this, "Showing saved dashboard (session expired)", Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(this, "Session expired. Refresh session to get latest data.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "No saved dashboard data available.", Toast.LENGTH_SHORT).show();
                     }
                 });
             } catch (Exception e) {
@@ -203,9 +218,8 @@ public class StudentDashboardActivity extends AppCompatActivity {
                     if (showBlockingLoader) setLoading(false);
                     if (prefs.hasDashboardCache()) {
                         loadFromCache();
-                        Toast.makeText(this, "Showing saved dashboard (refresh failed)", Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(this, "Error loading dashboard: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "No saved dashboard data available.", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -216,6 +230,25 @@ public class StudentDashboardActivity extends AppCompatActivity {
         try {
             List<SubjectAttendanceItem> attendance = amsClient.fetchAttendanceData();
             prefs.saveAttendanceCache(gson.toJson(attendance));
+
+            if (attendance != null) {
+                for (SubjectAttendanceItem subject : attendance) {
+                    if (subject == null) continue;
+                    try {
+                        List<PeriodAttendanceItem> periods = amsClient.fetchSubjectFullAttendance(
+                                subject.subjectCode,
+                                subject.subjectName
+                        );
+                        prefs.saveSubjectFullAttendanceCache(
+                                subject.subjectCode,
+                                subject.subjectName,
+                                gson.toJson(periods)
+                        );
+                    } catch (Exception ignored) {
+                        // continue with other subjects
+                    }
+                }
+            }
         } catch (Exception ignored) {
         }
 
@@ -231,6 +264,7 @@ public class StudentDashboardActivity extends AppCompatActivity {
     }
 
     private void updateUI(StudentDashboardData data) {
+        currentDashboardData = data;
         final String todayName = new SimpleDateFormat("EEEE", Locale.US).format(new Date());
         if (txtTimetableTitle != null)
             txtTimetableTitle.setText(todayName + " Timetable");
@@ -266,16 +300,27 @@ public class StudentDashboardActivity extends AppCompatActivity {
             for (TimetableItem it : todayItems) {
                 if (it == null)
                     continue;
-                // if ("Completed".equalsIgnoreCase(it.status)) continue;
-                filtered.add(it);
+                String computedStatus = TimetableStatusUtils.computeStatusForDay(todayName, it.time);
+                filtered.add(new TimetableItem(it.code, it.subject, it.time, computedStatus));
             }
         }
+
+        // Keep the same order as full timetable: Live -> Next -> Done
+        Collections.sort(filtered, (a, b) -> Integer.compare(statusPriority(a.status), statusPriority(b.status)));
 
         if (filtered.isEmpty()) {
             showTimetableEmpty("No classes today");
         } else {
             showTimetableItems(filtered);
         }
+    }
+
+    private int statusPriority(String status) {
+        if (status == null) return 1;
+        String s = status.trim();
+        if (s.equalsIgnoreCase("On Going") || s.equalsIgnoreCase("Live")) return 0;
+        if (s.equalsIgnoreCase("Completed") || s.equalsIgnoreCase("Done")) return 2;
+        return 1; // Upcoming/Next
     }
 
     private void showTimetableItems(List<TimetableItem> items) {
@@ -316,9 +361,31 @@ public class StudentDashboardActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        startStatusTicker();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopStatusTicker();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopStatusTicker();
         executor.shutdownNow();
+    }
+
+    private void startStatusTicker() {
+        statusHandler.removeCallbacks(statusTick);
+        statusHandler.post(statusTick);
+    }
+
+    private void stopStatusTicker() {
+        statusHandler.removeCallbacks(statusTick);
     }
 
     public void refreshData() {
